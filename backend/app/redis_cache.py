@@ -1,5 +1,6 @@
 import redis
 import os
+import hashlib
 
 class RedisCacheManager:
     def __init__(self):
@@ -8,19 +9,31 @@ class RedisCacheManager:
         try:
             self.client = redis.Redis(host=self.host, port=self.port, decode_responses=True)
             self.client.ping()
-            self.client.set("https://www.google.com", "SAFE")
-            self.client.set("https://www.presidencyuniversity.in", "SAFE")
-            self.client.set("http://malicious-phishing-test.com", "MALICIOUS")
-            print("[+] Tier-1 Redis Threat Cache Connected (100% Functional).")
+            print("[+] Tier-1 Redis Threat Cache Initialized.")
         except Exception as e:
-            print(f"[-] Redis Warning: {e}")
+            print(f"[-] Redis Cache Warning: {e}")
             self.client = None
 
+    def _hash_url(self, url: str) -> str:
+        return hashlib.sha256(url.strip().lower().encode("utf-8")).hexdigest()
+
     def get_verdict(self, url: str):
-        if self.client:
-            return self.client.get(url)
+        if not self.client:
+            return None
+        url_hash = self._hash_url(url)
+        data = self.client.hgetall(f"url:{url_hash}")
+        if data:
+            return data
         return None
 
-    def set_verdict(self, url: str, verdict: str, ttl: int = 3600):
-        if self.client:
-            self.client.setex(url, ttl, verdict)
+    def set_verdict(self, url: str, verdict: str, risk_score: float, ttl: int = 3600):
+        if not self.client:
+            return
+        url_hash = self._hash_url(url)
+        key = f"url:{url_hash}"
+        self.client.hset(key, mapping={
+            "verdict": verdict,
+            "risk_score": str(risk_score),
+            "raw_url": url
+        })
+        self.client.expire(key, ttl)

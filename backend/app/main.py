@@ -1,54 +1,77 @@
+import time
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from app.redis_cache import RedisCacheManager
-from app.nlp_engine import NLPEngine
-from app.whitelist import WhitelistEngine
+from app.nlp_engine import AdvancedNLPEngine
+from app.whitelist import EnterpriseWhitelistGatekeeper
+from app.database import AuditLogger
 
-app = FastAPI(title="Hybrid Phishing URL Detection API", version="1.0")
+app = FastAPI(
+    title="Real-Time Phishing Detection Engine",
+    version="2.0",
+    description="Multi-Tier Threat Intelligence Framework"
+)
 
-cache_manager = RedisCacheManager()
-nlp_engine = NLPEngine()
-whitelist_engine = WhitelistEngine()
+cache = RedisCacheManager()
+nlp = AdvancedNLPEngine()
+whitelist = EnterpriseWhitelistGatekeeper()
+logger = AuditLogger()
 
-class URLCheckRequest(BaseModel):
+class URLRequest(BaseModel):
     url: str
 
 @app.get("/")
-def root():
-    return {"status": "Active", "review": "Review-3 Implementation"}
+def health_check():
+    return {
+        "status": "ONLINE",
+        "system": "Hybrid Phishing Detection Framework",
+        "version": "2.0",
+        "tiers": ["Tier-1 Redis Cache", "Tier-2 NLP Engine", "Tier-3 Enterprise Whitelist"]
+    }
 
 @app.post("/api/v1/check-url")
-def check_url(payload: URLCheckRequest):
+def analyze_url(payload: URLRequest):
+    start_time = time.time()
     url = payload.url.strip()
-    if not url:
-        raise HTTPException(status_code=400, detail="URL cannot be empty")
 
-    if whitelist_engine.is_whitelisted(url):
+    if not url:
+        raise HTTPException(status_code=400, detail="Invalid URL payload")
+
+    if whitelist.is_whitelisted(url):
+        execution_time = round((time.time() - start_time) * 1000, 3)
+        logger.log_scan(url, "SAFE", "Tier-3 Enterprise Whitelist", 0.0, execution_time)
         return {
             "url": url,
             "verdict": "SAFE",
             "source": "Tier-3 Enterprise Whitelist",
             "risk_score": 0.0,
-            "latency": "< 0.5 ms"
+            "latency": f"{execution_time} ms"
         }
 
-    cached_verdict = cache_manager.get_verdict(url)
-    if cached_verdict:
+    cached = cache.get_verdict(url)
+    if cached:
+        execution_time = round((time.time() - start_time) * 1000, 3)
+        risk_score = float(cached.get("risk_score", 1.0 if cached.get("verdict") == "MALICIOUS" else 0.0))
+        logger.log_scan(url, cached.get("verdict"), "Tier-1 Redis Threat Cache", risk_score, execution_time)
         return {
             "url": url,
-            "verdict": cached_verdict,
+            "verdict": cached.get("verdict"),
             "source": "Tier-1 Redis Threat Cache",
-            "risk_score": 1.0 if cached_verdict == "MALICIOUS" else 0.0,
-            "latency": "< 1 ms"
+            "risk_score": risk_score,
+            "latency": f"{execution_time} ms"
         }
 
-    verdict, probability = nlp_engine.predict(url)
-    cache_manager.set_verdict(url, verdict)
+    verdict, risk_score = nlp.predict(url)
+    execution_time = round((time.time() - start_time) * 1000, 3)
+
+    ttl = 86400 if verdict == "MALICIOUS" else (3600 if verdict == "SUSPICIOUS" else 43200)
+    cache.set_verdict(url, verdict, risk_score, ttl=ttl)
+    logger.log_scan(url, verdict, "Tier-2 Advanced NLP Engine", risk_score, execution_time)
 
     return {
         "url": url,
         "verdict": verdict,
-        "source": "Tier-2 TF-IDF NLP Engine (Zero-Day)",
-        "risk_score": probability,
-        "latency": "~ 15 ms"
+        "source": "Tier-2 Advanced Lexical-NLP Engine",
+        "risk_score": risk_score,
+        "latency": f"{execution_time} ms"
     }
