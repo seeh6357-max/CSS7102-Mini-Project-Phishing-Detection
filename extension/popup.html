@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body { width: 300px; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 12px; margin: 0; }
+    h3 { margin-top: 0; color: #1a202c; font-size: 16px; border-bottom: 2px solid #e2e8f0; padding-bottom: 6px; }
+    input { width: 92%; padding: 8px; margin-bottom: 10px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 13px; }
+    button { width: 100%; padding: 9px; background: #2563eb; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; }
+    button:hover { background: #1d4ed8; }
+    #resultBox { margin-top: 12px; padding: 10px; border-radius: 6px; display: none; font-size: 13px; }
+    .safe { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
+    .malicious { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
+    .meta { font-size: 11px; margin-top: 4px; opacity: 0.85; }
+  </style>
+</head>
+<body>
+  <h3>Phishing Link Inspector</h3>
+  <input type="text" id="urlInput" placeholder="Paste URL here (e.g. http://...)">
+  <button onclick="analyzeURL()">Analyze Link</button>
+
+  <div id="resultBox">
+    <div>Verdict: <strong id="verdict"></strong></div>
+    <div class="meta">Source: <span id="source"></span></div>
+    <div class="meta">Risk Score: <span id="riskScore"></span></div>
+    <div class="meta">Latency: <span id="latency"></span></div>
+  </div>
+
+  <script>
+    async function analyzeURL() {
+      const url = document.getElementById('urlInput').value.trim();
+      if(!url) return;
+      
+      const box = document.getElementById('resultBox');
+      box.style.display = 'none';
+
+      try {
+        const response = await fetch('http://127.0.0.1:8000/api/v1/check-url', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url: url })
+        });
+        const data = await response.json();
+
+        document.getElementById('verdict').innerText = data.verdict;
+        document.getElementById('source').innerText = data.source;
+        document.getElementById('riskScore').innerText = data.risk_score;
+        document.getElementById('latency').innerText = data.latency;
+
+        box.className = data.verdict === 'SAFE' ? 'safe' : 'malicious';
+        box.style.display = 'block';
+      } catch (err) {
+        alert('Backend API Offline! Ensure FastAPI is running on port 8000.');
+      }
+    }
+  </script>
+</body>
+</html>
