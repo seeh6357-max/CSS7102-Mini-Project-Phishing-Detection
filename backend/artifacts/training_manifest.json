@@ -1,0 +1,11 @@
+{
+    "timestamp": "2026-09-25 07:28:22 IST",
+    "dataset_samples": 24,
+    "accuracy": 1.0,
+    "artifacts_saved": [
+        "char_vec.pkl",
+        "word_vec.pkl",
+        "scaler.pkl",
+        "model.pkl"
+    ]
+}

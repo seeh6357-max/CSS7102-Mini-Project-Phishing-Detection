@@ -1,25 +1,85 @@
 import os
 
+# ==============================================================================
+# Enterprise Phishing Threat Intelligence Framework - Master Setup Script
+# Creates complete multi-tiered detection system architecture
+# ==============================================================================
+
 os.makedirs("app", exist_ok=True)
 os.makedirs("app/templates", exist_ok=True)
 os.makedirs("app/static", exist_ok=True)
+os.makedirs("dataset", exist_ok=True)
+os.makedirs("artifacts", exist_ok=True)
 
-# 1. train_model.py (Voting Ensemble Trainer)
-with open("train_model.py", "w") as f:
+# ------------------------------------------------------------------------------
+# 1. Configuration Module (app/config.py)
+# ------------------------------------------------------------------------------
+with open("app/config.py", "w") as f:
     f.write('''import os
-import math
+
+class Settings:
+    PROJECT_NAME: str = "PhishShield Enterprise Glass SOC"
+    VERSION: str = "3.5.0"
+    API_V1_PREFIX: str = "/api/v1"
+    
+    # Model & Artifact Paths
+    ARTIFACTS_DIR: str = "artifacts"
+    CHAR_VEC_PATH: str = os.path.join(ARTIFACTS_DIR, "char_vec.pkl")
+    WORD_VEC_PATH: str = os.path.join(ARTIFACTS_DIR, "word_vec.pkl")
+    SCALER_PATH: str = os.path.join(ARTIFACTS_DIR, "scaler.pkl")
+    MODEL_PATH: str = os.path.join(ARTIFACTS_DIR, "model.pkl")
+    
+    # Cache Settings
+    REDIS_HOST: str = os.getenv("REDIS_HOST", "localhost")
+    REDIS_PORT: int = int(os.getenv("REDIS_PORT", 6379))
+    REDIS_DB: int = int(os.getenv("REDIS_DB", 0))
+    REDIS_PASSWORD: str = os.getenv("REDIS_PASSWORD", "")
+    DEFAULT_CACHE_TTL: int = 86400  # 24 Hours
+    
+    # Database Settings
+    DB_PATH: str = "app/audit_logs.db"
+    
+    # Detection Thresholds
+    HIGH_RISK_THRESHOLD: float = 0.75
+    MEDIUM_RISK_THRESHOLD: float = 0.45
+
+settings = Settings()
+''')
+
+# ------------------------------------------------------------------------------
+# 2. Advanced Feature Extractor (app/lexical_extractor.py)
+# ------------------------------------------------------------------------------
+with open("app/lexical_extractor.py", "w") as f:
+    f.write('''import math
+import re
 import numpy as np
-import pandas as pd
+from urllib.parse import urlparse
 from Levenshtein import distance as lev_distance
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier, VotingClassifier
-from sklearn.preprocessing import StandardScaler
 from sklearn.base import BaseEstimator, TransformerMixin
-import joblib
+
+TARGET_BRANDS = [
+    "paypal", "google", "microsoft", "apple", "amazon", "bankofamerica", 
+    "netflix", "facebook", "instagram", "linkedin", "presidencyuniversity",
+    "chase", "wellsfargo", "dropbox", "github", "twitter", "binance", 
+    "coinbase", "adobe", "steam", "spotify", "standardchartered", "hdfcbank"
+]
+
+SUSPICIOUS_TLDS = [
+    ".xyz", ".top", ".tk", ".site", ".online", ".info", ".club", 
+    ".work", ".click", ".buzz", ".cc", ".cf", ".ga", ".gq", ".ml", ".icu"
+]
+
+SUSPICIOUS_KEYWORDS = [
+    "login", "verify", "update", "account", "secure", "banking", "confirm",
+    "signin", "support", "service", "billing", "credential", "security", "free",
+    "bonus", "claim", "wallet", "dispatched", "suspended", "action-required"
+]
 
 class LexicalFeatureExtractor(BaseEstimator, TransformerMixin):
     def __init__(self):
-        self.target_brands = ["paypal", "google", "microsoft", "apple", "amazon", "bankofamerica", "netflix", "presidencyuniversity", "facebook", "instagram", "linkedin"]
+        self.target_brands = TARGET_BRANDS
+        self.suspicious_tlds = SUSPICIOUS_TLDS
+        self.suspicious_keywords = SUSPICIOUS_KEYWORDS
 
     def calculate_entropy(self, text: str) -> float:
         if not text:
@@ -30,184 +90,298 @@ class LexicalFeatureExtractor(BaseEstimator, TransformerMixin):
     def min_brand_distance(self, domain: str) -> int:
         if not domain:
             return 999
-        distances = [lev_distance(domain, brand) for brand in self.target_brands]
+        clean_domain = domain.split(".")[0]
+        distances = [lev_distance(clean_domain, brand) for brand in self.target_brands]
         return min(distances) if distances else 999
 
-    def fit(self, X, y=None):
-        return self
+    def has_ip_address(self, netloc: str) -> int:
+        ip_pattern = r'^(\\d{1,3}\\.){3}\\d{1,3}(:\\d+)?$'
+        return 1 if re.match(ip_pattern, netloc) else 0
 
-    def transform(self, X):
-        features = []
-        for url in X:
-            url_str = str(url).lower()
-            url_length = len(url_str)
-            num_digits = sum(c.isdigit() for c in url_str)
-            digit_ratio = num_digits / url_length if url_length > 0 else 0
-            
-            num_special = sum(not c.isalnum() for c in url_str)
-            special_ratio = num_special / url_length if url_length > 0 else 0
-            
-            num_subdomains = url_str.count(".") - 1
-            has_ip = 1 if any(char.isdigit() for char in url_str.split("/")[0]) and url_str.count(".") == 3 else 0
-            
-            entropy = self.calculate_entropy(url_str)
-            domain = url_str.split("://")[-1].split("/")[0]
-            brand_dist = self.min_brand_distance(domain)
+    def detect_homoglyphs(self, domain: str) -> int:
+        return 1 if "xn--" in domain.lower() else 0
 
-            suspicious_tlds = [".xyz", ".top", ".tk", ".site", ".online", ".info", ".club"]
-            has_suspicious_tld = 1 if any(url_str.endswith(tld) or tld + "/" in url_str for tld in suspicious_tlds) else 0
-
-            features.append([
-                url_length, digit_ratio, special_ratio, num_subdomains, has_ip, entropy, brand_dist, has_suspicious_tld
-            ])
-        return np.array(features)
-
-def train_and_export():
-    print("[*] Training Tier-2 Voting Ensemble Model...")
-    data = {
-        "url": [
-            "https://www.google.com", "https://www.github.com", "https://www.wikipedia.org",
-            "https://www.microsoft.com", "https://www.amazon.com", "https://www.presidencyuniversity.in",
-            "https://stackoverflow.com", "https://www.python.org", "https://fastapi.tiangolo.com",
-            "https://redis.io", "https://scikit-learn.org", "https://www.linkedin.com",
-            "https://portal.presidencyuniversity.in/student/dashboard", "https://docs.python.org/3/library/index.html",
-            "http://login.paypal.com.account-verify.secure-update.xyz/login.php",
-            "http://secure-bankofamerica.update-login-credential.com/auth",
-            "http://account-google-security-verify.temp-web.net/signin",
-            "http://appleid.apple.com.verify.account.info-security.top/id",
-            "http://192.168.1.1/login.php?update=true&user=admin",
-            "http://free-crypto-giveaway-claim-now.site/claim",
-            "http://secure.signin.amazon.com-check.tk/auth",
-            "http://verify-identity-netflix-payment.support-now.online/billing",
-            "http://paypa1-security-center.account-verification-dispatch.info",
-            "http://presidency-university-exam-fee-portal.pay-online.tk"
-        ],
-        "label": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
-    }
-
-    df = pd.DataFrame(data)
-    os.makedirs("dataset", exist_ok=True)
-    df.to_csv("dataset/phishing_urls.csv", index=False)
-
-    X = df["url"]
-    y = df["label"]
-
-    char_vec = TfidfVectorizer(analyzer="char", ngram_range=(3, 5), max_features=800)
-    word_vec = TfidfVectorizer(analyzer="word", ngram_range=(1, 2), max_features=400)
-    lexical_extractor = LexicalFeatureExtractor()
-
-    X_char = char_vec.fit_transform(X).toarray()
-    X_word = word_vec.fit_transform(X).toarray()
-    X_lexical = lexical_extractor.transform(X)
-    
-    scaler = StandardScaler()
-    X_lexical_scaled = scaler.fit_transform(X_lexical)
-    X_combined = np.hstack((X_char, X_word, X_lexical_scaled))
-
-    rf = RandomForestClassifier(n_estimators=100, random_state=42)
-    gb = GradientBoostingClassifier(n_estimators=100, random_state=42)
-    
-    ensemble = VotingClassifier(estimators=[("rf", rf), ("gb", gb)], voting="soft")
-    ensemble.fit(X_combined, y)
-
-    os.makedirs("app", exist_ok=True)
-    joblib.dump(char_vec, "app/char_vec.pkl")
-    joblib.dump(word_vec, "app/word_vec.pkl")
-    joblib.dump(scaler, "app/scaler.pkl")
-    joblib.dump(ensemble, "app/model.pkl")
-    print("[+] Advanced Ensemble Artifacts Exported Successfully!")
-
-if __name__ == "__main__":
-    train_and_export()
-''')
-
-# 2. app/nlp_engine.py
-with open("app/nlp_engine.py", "w") as f:
-    f.write('''import joblib
-import os
-import math
-import numpy as np
-from Levenshtein import distance as lev_distance
-
-class AdvancedNLPEngine:
-    def __init__(self):
-        char_path = "app/char_vec.pkl"
-        word_path = "app/word_vec.pkl"
-        scaler_path = "app/scaler.pkl"
-        model_path = "app/model.pkl"
-        self.target_brands = ["paypal", "google", "microsoft", "apple", "amazon", "bankofamerica", "netflix", "presidencyuniversity", "facebook", "instagram", "linkedin"]
+    def extract_features_single(self, url: str) -> list:
+        url_str = str(url).lower().strip()
+        parsed = urlparse(url_str if "://" in url_str else "http://" + url_str)
         
-        if os.path.exists(char_path) and os.path.exists(word_path) and os.path.exists(scaler_path) and os.path.exists(model_path):
-            self.char_vec = joblib.load(char_path)
-            self.word_vec = joblib.load(word_path)
-            self.scaler = joblib.load(scaler_path)
-            self.model = joblib.load(model_path)
-            self.ready = True
-            print("[+] Tier-2 Advanced Voting Ensemble NLP Engine Online.")
-        else:
-            self.ready = False
-            print("[-] NLP Engine Error: Missing Model Artifacts.")
-
-    def _calculate_entropy(self, text: str) -> float:
-        if not text:
-            return 0.0
-        prob = [float(text.count(c)) / len(text) for c in set(text)]
-        return -sum([p * math.log(p, 2) for p in prob])
-
-    def _extract_lexical_features(self, url: str):
-        url_str = url.lower()
+        domain = parsed.netloc
+        path = parsed.path
+        query = parsed.query
+        
         url_length = len(url_str)
+        domain_length = len(domain)
+        path_length = len(path)
+        
         num_digits = sum(c.isdigit() for c in url_str)
         digit_ratio = num_digits / url_length if url_length > 0 else 0
         
         num_special = sum(not c.isalnum() for c in url_str)
         special_ratio = num_special / url_length if url_length > 0 else 0
         
-        num_subdomains = url_str.count(".") - 1
-        has_ip = 1 if any(char.isdigit() for char in url_str.split("/")[0]) and url_str.count(".") == 3 else 0
+        num_subdomains = max(0, domain.count(".") - 1)
+        has_ip = self.has_ip_address(domain)
+        has_punycode = self.detect_homoglyphs(domain)
         
-        entropy = self._calculate_entropy(url_str)
-        domain = url_str.split("://")[-1].split("/")[0]
-        distances = [lev_distance(domain, brand) for brand in self.target_brands]
-        brand_dist = min(distances) if distances else 999
-
-        suspicious_tlds = [".xyz", ".top", ".tk", ".site", ".online", ".info", ".club"]
-        has_suspicious_tld = 1 if any(url_str.endswith(tld) or tld + "/" in url_str for tld in suspicious_tlds) else 0
-
-        return np.array([[
-            url_length, digit_ratio, special_ratio, num_subdomains, has_ip, entropy, brand_dist, has_suspicious_tld
-        ]])
-
-    def predict(self, url: str):
-        if not self.ready:
-            return "UNKNOWN", 0.0
-
-        char_feat = self.char_vec.transform([url]).toarray()
-        word_feat = self.word_vec.transform([url]).toarray()
-        lex_feat = self._extract_lexical_features(url)
-        lex_scaled = self.scaler.transform(lex_feat)
-
-        combined_features = np.hstack((char_feat, word_feat, lex_scaled))
-        prob = self.model.predict_proba(combined_features)[0][1]
+        overall_entropy = self.calculate_entropy(url_str)
+        domain_entropy = self.calculate_entropy(domain)
         
-        if prob >= 0.75:
-            verdict = "MALICIOUS"
-        elif prob >= 0.45:
-            verdict = "SUSPICIOUS"
-        else:
-            verdict = "SAFE"
+        brand_dist = self.min_brand_distance(domain)
+        has_suspicious_tld = 1 if any(domain.endswith(tld) for tld in self.suspicious_tlds) else 0
+        
+        keyword_matches = sum(1 for kw in self.suspicious_keywords if kw in url_str)
+        has_at_symbol = 1 if "@" in url_str else 0
+        is_https = 1 if parsed.scheme == "https" else 0
+        has_double_slash = 1 if "//" in path else 0
+        query_param_count = len(query.split("&")) if query else 0
 
-        return verdict, round(float(prob), 4)
+        return [
+            url_length, domain_length, path_length, digit_ratio, special_ratio,
+            num_subdomains, has_ip, has_punycode, overall_entropy, domain_entropy,
+            brand_dist, has_suspicious_tld, keyword_matches, has_at_symbol,
+            is_https, has_double_slash, query_param_count
+        ]
+
+    def fit(self, X, y=None):
+        return self
+
+    def transform(self, X):
+        features = [self.extract_features_single(url) for url in X]
+        return np.array(features)
 ''')
 
-# 3. app/database.py
+# ------------------------------------------------------------------------------
+# 3. Model Trainer & Artifact Generator (train_model.py)
+# ------------------------------------------------------------------------------
+with open("train_model.py", "w") as f:
+    f.write('''import os
+import joblib
+import numpy as np
+import pandas as pd
+from scipy.sparse import hstack
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier, ExtraTreesClassifier, VotingClassifier
+from sklearn.preprocessing import StandardScaler
+from app.lexical_extractor import LexicalFeatureExtractor
+from app.config import settings
+
+def generate_synthetic_dataset():
+    benign_urls = [
+        "https://www.google.com", "https://www.github.com", "https://www.wikipedia.org",
+        "https://www.microsoft.com", "https://www.amazon.com", "https://www.presidencyuniversity.in",
+        "https://stackoverflow.com", "https://www.python.org", "https://fastapi.tiangolo.com",
+        "https://redis.io", "https://scikit-learn.org", "https://www.linkedin.com",
+        "https://portal.presidencyuniversity.in/student/dashboard", "https://docs.python.org/3/library/index.html",
+        "https://aws.amazon.com/console/", "https://drive.google.com/drive/my-drive",
+        "https://developer.mozilla.org/en-US/docs/Web", "https://pypi.org/project/joblib/",
+        "https://www.cloudflare.com/network/", "https://www.sciencedirect.com/journal/cybersecurity",
+        "https://arxiv.org/abs/2301.00001", "https://www.nytimes.com/section/technology",
+        "https://medium.com/topic/cybersecurity", "https://chat.openai.com/",
+        "https://hub.docker.com/_/redis", "https://www.postman.com/product/api-platform/",
+        "https://git-scm.com/doc", "https://news.ycombinator.com/", "https://www.reddit.com/r/netsec/"
+    ]
+    
+    phishing_urls = [
+        "http://login.paypal.com.account-verify.secure-update.xyz/login.php",
+        "http://secure-bankofamerica.update-login-credential.com/auth",
+        "http://account-google-security-verify.temp-web.net/signin",
+        "http://appleid.apple.com.verify.account.info-security.top/id",
+        "http://192.168.1.1/login.php?update=true&user=admin",
+        "http://free-crypto-giveaway-claim-now.site/claim",
+        "http://secure.signin.amazon.com-check.tk/auth",
+        "http://verify-identity-netflix-payment.support-now.online/billing",
+        "http://paypa1-security-center.account-verification-dispatch.info",
+        "http://presidency-university-exam-fee-portal.pay-online.tk",
+        "http://xn--gogl-0ra.com/login-verification-security",
+        "http://microsoft-office365-password-reset.action-required.club",
+        "http://chase-online-banking-alert.suspended-account.work",
+        "http://wellsfargo-verify-identity-billing-update.buzz/login",
+        "http://facebook-security-appeal-center.account-support.cc",
+        "http://instagram-copyright-infringement-claim.site/verify",
+        "http://binance-wallet-recovery-passphrase.claim-airdrop.top",
+        "http://coinbase-auth-mfa-token-sync.info-verification.online",
+        "http://adobe-account-renewal-payment.discount-offer.click",
+        "http://hdfc-netbanking-otp-auth.secure-update.gq/login",
+        "http://10.0.0.1/admin/config.php?session=stolen",
+        "http://spotify-premium-annual-free-pass.buzz/claim",
+        "http://dropbox-shared-confidential-document.xyz/download"
+    ]
+    
+    urls = benign_urls + phishing_urls
+    labels = [0] * len(benign_urls) + [1] * len(phishing_urls)
+    return pd.DataFrame({"url": urls, "label": labels})
+
+def train_and_export():
+    print("[*] Initiating PhishShield Model Training Pipeline...")
+    df = generate_synthetic_dataset()
+    df.to_csv("dataset/phishing_urls.csv", index=False)
+
+    X = df["url"]
+    y = df["label"]
+
+    char_vec = TfidfVectorizer(analyzer="char", ngram_range=(3, 5), max_features=1200)
+    word_vec = TfidfVectorizer(analyzer="word", ngram_range=(1, 3), max_features=600)
+    lexical_extractor = LexicalFeatureExtractor()
+
+    X_char = char_vec.fit_transform(X)
+    X_word = word_vec.fit_transform(X)
+    X_lexical = lexical_extractor.transform(X)
+
+    scaler = StandardScaler()
+    X_lexical_scaled = scaler.fit_transform(X_lexical)
+
+    X_combined = hstack([X_char, X_word, X_lexical_scaled]).tocsr()
+
+    rf = RandomForestClassifier(n_estimators=150, max_depth=12, random_state=42)
+    gb = GradientBoostingClassifier(n_estimators=150, learning_rate=0.1, random_state=42)
+    et = ExtraTreesClassifier(n_estimators=100, random_state=42)
+
+    ensemble = VotingClassifier(
+        estimators=[("rf", rf), ("gb", gb), ("et", et)],
+        voting="soft"
+    )
+    ensemble.fit(X_combined, y)
+
+    os.makedirs(settings.ARTIFACTS_DIR, exist_ok=True)
+    joblib.dump(char_vec, settings.CHAR_VEC_PATH)
+    joblib.dump(word_vec, settings.WORD_VEC_PATH)
+    joblib.dump(scaler, settings.SCALER_PATH)
+    joblib.dump(ensemble, settings.MODEL_PATH)
+
+    print("[+] Advanced Tri-Voting Ensemble Artifacts Exported Successfully!")
+
+if __name__ == "__main__":
+    train_and_export()
+''')
+
+# ------------------------------------------------------------------------------
+# 4. Redis Cache Manager with In-Memory Fallback (app/redis_cache.py)
+# ------------------------------------------------------------------------------
+with open("app/redis_cache.py", "w") as f:
+    f.write('''import hashlib
+import json
+import time
+from app.config import settings
+
+try:
+    import redis
+    redis_client = redis.Redis(
+        host=settings.REDIS_HOST,
+        port=settings.REDIS_PORT,
+        db=settings.REDIS_DB,
+        password=settings.REDIS_PASSWORD if settings.REDIS_PASSWORD else None,
+        socket_timeout=1.0
+    )
+    redis_client.ping()
+    REDIS_AVAILABLE = True
+    print("[+] Connected to Redis Cache Server.")
+except Exception:
+    REDIS_AVAILABLE = False
+    print("[-] Redis Server unavailable. Falling back to High-Speed In-Memory LRU Cache.")
+
+class MemoryCache:
+    def __init__(self):
+        self.store = {}
+
+    def get(self, key: str):
+        item = self.store.get(key)
+        if not item:
+            return None
+        if time.time() > item["expires"]:
+            del self.store[key]
+            return None
+        return item["value"]
+
+    def set(self, key: str, value: str, ex: int):
+        self.store[key] = {
+            "value": value,
+            "expires": time.time() + ex
+        }
+
+local_cache = MemoryCache()
+
+class RedisCacheManager:
+    def __init__(self):
+        self.use_redis = REDIS_AVAILABLE
+
+    def _hash_url(self, url: str) -> str:
+        return hashlib.sha256(url.strip().lower().encode("utf-8")).hexdigest()
+
+    def get_verdict(self, url: str):
+        key = f"phish_cache:{self._hash_url(url)}"
+        try:
+            if self.use_redis:
+                data = redis_client.get(key)
+                return json.loads(data) if data else None
+            else:
+                data = local_cache.get(key)
+                return json.loads(data) if data else None
+        except Exception:
+            return None
+
+    def set_verdict(self, url: str, verdict: str, risk_score: float, ttl: int = settings.DEFAULT_CACHE_TTL):
+        key = f"phish_cache:{self._hash_url(url)}"
+        payload = json.dumps({"verdict": verdict, "risk_score": risk_score, "cached_at": time.time()})
+        try:
+            if self.use_redis:
+                redis_client.setex(key, ttl, payload)
+            else:
+                local_cache.set(key, payload, ex=ttl)
+        except Exception as e:
+            print(f"[-] Cache Write Error: {e}")
+''')
+
+# ------------------------------------------------------------------------------
+# 5. Whitelist Gatekeeper (app/whitelist.py)
+# ------------------------------------------------------------------------------
+with open("app/whitelist.py", "w") as f:
+    f.write('''import re
+from urllib.parse import urlparse
+
+WHITELISTED_DOMAINS = {
+    "google.com", "github.com", "wikipedia.org", "microsoft.com", 
+    "amazon.com", "presidencyuniversity.in", "stackoverflow.com", 
+    "python.org", "tiangolo.com", "redis.io", "scikit-learn.org", 
+    "linkedin.com", "cloudflare.com", "openai.com", "docker.com",
+    "apple.com", "facebook.com", "youtube.com", "twitter.com"
+}
+
+class EnterpriseWhitelistGatekeeper:
+    def __init__(self):
+        self.domains = WHITELISTED_DOMAINS
+
+    def is_whitelisted(self, url: str) -> bool:
+        try:
+            url_str = url.strip().lower()
+            if not url_str.startswith(("http://", "https://")):
+                url_str = "http://" + url_str
+                
+            parsed = urlparse(url_str)
+            domain = parsed.netloc.split(":")[0]
+            
+            if domain in self.domains:
+                return True
+                
+            parts = domain.split(".")
+            if len(parts) >= 2:
+                root_domain = f"{parts[-2]}.{parts[-1]}"
+                if root_domain in self.domains:
+                    return True
+            return False
+        except Exception:
+            return False
+''')
+
+# ------------------------------------------------------------------------------
+# 6. SQLite Audit Database Engine (app/database.py)
+# ------------------------------------------------------------------------------
 with open("app/database.py", "w") as f:
     f.write('''import sqlite3
-import os
 from datetime import datetime
+from app.config import settings
 
 class AuditLogger:
-    def __init__(self, db_path="app/audit_logs.db"):
+    def __init__(self, db_path=settings.DB_PATH):
         self.db_path = db_path
         self._init_db()
 
@@ -239,21 +413,110 @@ class AuditLogger:
             conn.commit()
             conn.close()
         except Exception as e:
-            print(f"[-] Database Error: {e}")
+            print(f"[-] Audit DB Insert Error: {e}")
 
     def get_recent_logs(self, limit=15):
         try:
             conn = sqlite3.connect(self.db_path)
             cursor = conn.cursor()
-            cursor.execute("SELECT id, url, verdict, source, risk_score, latency_ms, timestamp FROM scan_logs ORDER BY id DESC LIMIT ?", (limit,))
+            cursor.execute("""
+                SELECT id, url, verdict, source, risk_score, latency_ms, timestamp 
+                FROM scan_logs ORDER BY id DESC LIMIT ?
+            """, (limit,))
             rows = cursor.fetchall()
             conn.close()
             return rows
         except Exception:
             return []
+
+    def get_analytics(self):
+        try:
+            conn = sqlite3.connect(self.db_path)
+            cursor = conn.cursor()
+            cursor.execute("SELECT COUNT(*) FROM scan_logs")
+            total_scans = cursor.fetchone()[0]
+            
+            cursor.execute("SELECT COUNT(*) FROM scan_logs WHERE verdict = 'MALICIOUS'")
+            malicious_count = cursor.fetchone()[0]
+            
+            cursor.execute("SELECT AVG(latency_ms) FROM scan_logs")
+            avg_latency = cursor.fetchone()[0] or 0.0
+            
+            conn.close()
+            return {
+                "total_scans": total_scans,
+                "malicious_detected": malicious_count,
+                "avg_latency_ms": round(avg_latency, 2)
+            }
+        except Exception:
+            return {"total_scans": 0, "malicious_detected": 0, "avg_latency_ms": 0.0}
 ''')
 
-# 4. Glassmorphic UI (app/templates/index.html)
+# ------------------------------------------------------------------------------
+# 7. Advanced Inference Engine (app/nlp_engine.py)
+# ------------------------------------------------------------------------------
+with open("app/nlp_engine.py", "w") as f:
+    f.write('''import os
+import joblib
+import numpy as np
+from scipy.sparse import hstack
+from app.lexical_extractor import LexicalFeatureExtractor
+from app.config import settings
+
+class AdvancedNLPEngine:
+    def __init__(self):
+        self.ready = False
+        self.lexical_extractor = LexicalFeatureExtractor()
+        self._load_artifacts()
+
+    def _load_artifacts(self):
+        try:
+            if (os.path.exists(settings.CHAR_VEC_PATH) and 
+                os.path.exists(settings.WORD_VEC_PATH) and 
+                os.path.exists(settings.SCALER_PATH) and 
+                os.path.exists(settings.MODEL_PATH)):
+                
+                self.char_vec = joblib.load(settings.CHAR_VEC_PATH)
+                self.word_vec = joblib.load(settings.WORD_VEC_PATH)
+                self.scaler = joblib.load(settings.SCALER_PATH)
+                self.model = joblib.load(settings.MODEL_PATH)
+                self.ready = True
+                print("[+] Tri-Voting Ensemble Engine Engine Online.")
+            else:
+                print("[-] NLP Engine Notice: Model artifacts missing. Run train_model.py first.")
+        except Exception as e:
+            print(f"[-] NLP Engine Initialization Failed: {e}")
+
+    def predict(self, url: str):
+        if not self.ready:
+            return "UNKNOWN", 0.0
+
+        try:
+            char_feat = self.char_vec.transform([url])
+            word_feat = self.word_vec.transform([url])
+            
+            lex_feat = self.lexical_extractor.transform([url])
+            lex_scaled = self.scaler.transform(lex_feat)
+
+            combined_features = hstack([char_feat, word_feat, lex_scaled]).tocsr()
+            prob = self.model.predict_proba(combined_features)[0][1]
+
+            if prob >= settings.HIGH_RISK_THRESHOLD:
+                verdict = "MALICIOUS"
+            elif prob >= settings.MEDIUM_RISK_THRESHOLD:
+                verdict = "SUSPICIOUS"
+            else:
+                verdict = "SAFE"
+
+            return verdict, round(float(prob), 4)
+        except Exception as e:
+            print(f"[-] Inference Error: {e}")
+            return "UNKNOWN", 0.0
+''')
+
+# ------------------------------------------------------------------------------
+# 8. Glassmorphic UI Dashboard (app/templates/index.html)
+# ------------------------------------------------------------------------------
 with open("app/templates/index.html", "w") as f:
     f.write('''<!DOCTYPE html>
 <html lang="en">
@@ -278,12 +541,12 @@ with open("app/templates/index.html", "w") as f:
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: "Plus Jakarta Sans", sans-serif; }
-        body { background: var(--bg-gradient); color: var(--text-main); min-height: 100vh; overflow-x: hidden; padding: 20px; }
+        body { background: var(--bg-gradient); color: var(--text-main); min-height: 100vh; overflow-x: hidden; padding: 24px; }
         
-        .background-blobs { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: -1; overflow: hidden; }
-        .blob { position: absolute; filter: blur(90px); opacity: 0.4; border-radius: 50%; }
-        .blob-1 { width: 450px; height: 450px; background: #6366f1; top: -100px; left: -100px; }
-        .blob-2 { width: 500px; height: 500px; background: #d946ef; bottom: -150px; right: -100px; }
+        .background-blobs { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: -1; overflow: hidden; pointer-events: none; }
+        .blob { position: absolute; filter: blur(100px); opacity: 0.35; border-radius: 50%; }
+        .blob-1 { width: 500px; height: 500px; background: #6366f1; top: -100px; left: -100px; }
+        .blob-2 { width: 550px; height: 550px; background: #d946ef; bottom: -150px; right: -100px; }
 
         .container { max-width: 1400px; margin: 0 auto; display: grid; grid-template-columns: 1fr; gap: 24px; }
         
@@ -332,6 +595,7 @@ with open("app/templates/index.html", "w") as f:
         .result-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; }
         .verdict-tag { font-size: 18px; font-weight: 800; padding: 8px 18px; border-radius: 12px; letter-spacing: 0.5px; }
         .verdict-safe { background: rgba(52, 211, 153, 0.15); color: var(--neon-green); border: 1px solid var(--neon-green); }
+        .verdict-suspicious { background: rgba(251, 191, 36, 0.15); color: #fbbf24; border: 1px solid #fbbf24; }
         .verdict-malicious { background: rgba(244, 63, 94, 0.15); color: var(--neon-red); border: 1px solid var(--neon-red); }
         
         .metrics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-top: 16px; }
@@ -356,10 +620,18 @@ with open("app/templates/index.html", "w") as f:
         .sidebar-card {
             background: var(--glass-bg); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
             border: 1px solid var(--glass-border); border-radius: 24px; padding: 28px;
+            display: flex; flex-direction: column; gap: 20px;
         }
-        .tier-item { display: flex; align-items: center; justify-content: space-between; padding: 14px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .tier-item { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
         .tier-info { display: flex; align-items: center; gap: 12px; }
         .tier-info i { font-size: 18px; color: var(--neon-blue); }
+
+        .analytics-box {
+            background: rgba(15, 23, 42, 0.4); border: 1px solid var(--glass-border);
+            border-radius: 16px; padding: 16px; display: flex; justify-content: space-around; text-align: center;
+        }
+        .stat-num { font-size: 20px; font-weight: 800; color: var(--neon-blue); }
+        .stat-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; margin-top: 2px; }
     </style>
 </head>
 <body>
@@ -376,17 +648,17 @@ with open("app/templates/index.html", "w") as f:
             </div>
             <div class="badge-live">
                 <div class="pulse"></div>
-                3-TIER ENGINE LIVE
+                3-TIER ENGINE ACTIVE
             </div>
         </header>
 
         <div class="scan-card">
-            <h2>Real-Time Zero-Day URL Threat Inspection</h2>
-            <p>Analyze incoming links via Enterprise Whitelist, SHA-256 Redis Cache, and Composite Voting Ensemble NLP.</p>
+            <h2>Real-Time Threat Intelligence Inspection</h2>
+            <p>Analyze links through Whitelist Gatekeeper, SHA-256 Redis Cache, and Tri-Voting Ensemble NLP Engine.</p>
             
             <div class="input-group">
                 <i class="fa-solid fa-globe"></i>
-                <input type="text" id="urlInput" placeholder="Paste target URL for analysis (e.g. http://paypa1-security-update.xyz)">
+                <input type="text" id="urlInput" placeholder="Paste target URL for analysis (e.g. http://login.paypal.com.account-verify.secure-update.xyz)">
                 <button class="btn-scan" onclick="analyzeURL()">
                     <i class="fa-solid fa-bolt"></i> Inspect Threat
                 </button>
@@ -420,7 +692,7 @@ with open("app/templates/index.html", "w") as f:
 
         <div class="dashboard-grid">
             <div class="table-card">
-                <h3><i class="fa-solid fa-list-check" style="color: var(--neon-purple);"></i> Real-Time Audit Log Database</h3>
+                <h3><i class="fa-solid fa-list-check" style="color: var(--neon-purple);"></i> Real-Time Audit Log Feed</h3>
                 <table>
                     <thead>
                         <tr>
@@ -438,14 +710,31 @@ with open("app/templates/index.html", "w") as f:
             </div>
 
             <div class="sidebar-card">
-                <h3 style="font-size: 18px; margin-bottom: 18px;"><i class="fa-solid fa-microchip" style="color: var(--neon-blue);"></i> Active Intelligence Tiers</h3>
+                <h3 style="font-size: 18px;"><i class="fa-solid fa-chart-pie" style="color: var(--neon-blue);"></i> SOC Metrics</h3>
+                
+                <div class="analytics-box">
+                    <div>
+                        <div class="stat-num" id="statTotal">0</div>
+                        <div class="stat-label">Total Scans</div>
+                    </div>
+                    <div>
+                        <div class="stat-num" style="color: var(--neon-red);" id="statMalicious">0</div>
+                        <div class="stat-label">Threats</div>
+                    </div>
+                    <div>
+                        <div class="stat-num" style="color: var(--neon-green);" id="statLatency">0 ms</div>
+                        <div class="stat-label">Avg Latency</div>
+                    </div>
+                </div>
+
+                <h3 style="font-size: 18px; margin-top: 10px;"><i class="fa-solid fa-microchip" style="color: var(--neon-purple);"></i> Detection Tiers</h3>
                 
                 <div class="tier-item">
                     <div class="tier-info">
                         <i class="fa-solid fa-bolt"></i>
                         <div>
                             <strong style="font-size: 14px; display: block;">Tier-3 Whitelist</strong>
-                            <span style="font-size: 12px; color: var(--text-muted);">Top 1M & Corporate Domains</span>
+                            <span style="font-size: 12px; color: var(--text-muted);">Enterprise Gatekeeper</span>
                         </div>
                     </div>
                     <span style="font-size: 12px; color: var(--neon-green); font-weight: 700;">< 0.1 ms</span>
@@ -467,10 +756,10 @@ with open("app/templates/index.html", "w") as f:
                         <i class="fa-solid fa-brain"></i>
                         <div>
                             <strong style="font-size: 14px; display: block;">Tier-2 Ensemble NLP</strong>
-                            <span style="font-size: 12px; color: var(--text-muted);">Voting RF + Gradient Boosting</span>
+                            <span style="font-size: 12px; color: var(--text-muted);">Tri-Voting Classifier</span>
                         </div>
                     </div>
-                    <span style="font-size: 12px; color: var(--neon-blue); font-weight: 700;">~ 15 ms</span>
+                    <span style="font-size: 12px; color: var(--neon-blue); font-weight: 700;">~ 12 ms</span>
                 </div>
             </div>
         </div>
@@ -499,7 +788,14 @@ with open("app/templates/index.html", "w") as f:
 
                 const verdictElem = document.getElementById("resVerdict");
                 verdictElem.innerText = data.verdict;
-                verdictElem.className = "verdict-tag " + (data.verdict === "SAFE" ? "verdict-safe" : "verdict-malicious");
+                
+                if (data.verdict === "SAFE") {
+                    verdictElem.className = "verdict-tag verdict-safe";
+                } else if (data.verdict === "SUSPICIOUS") {
+                    verdictElem.className = "verdict-tag verdict-suspicious";
+                } else {
+                    verdictElem.className = "verdict-tag verdict-malicious";
+                }
 
                 document.getElementById("resultPanel").style.display = "block";
                 loadLogs();
@@ -520,42 +816,63 @@ with open("app/templates/index.html", "w") as f:
 
                 logs.forEach(log => {
                     const row = document.createElement("tr");
-                    const isSafe = log.verdict === "SAFE";
+                    let color = 'var(--neon-green)';
+                    if (log.verdict === 'SUSPICIOUS') color = '#fbbf24';
+                    if (log.verdict === 'MALICIOUS') color = 'var(--neon-red)';
+
                     row.innerHTML = `
                         <td>#${log.id}</td>
-                        <td style="max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${log.url}</td>
-                        <td><span style="color: ${isSafe ? 'var(--neon-green)' : 'var(--neon-red)'}; font-weight: 700;">${log.verdict}</span></td>
+                        <td style="max-width: 280px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${log.url}</td>
+                        <td><span style="color: ${color}; font-weight: 700;">${log.verdict}</span></td>
                         <td>${log.source}</td>
                         <td>${log.latency}</td>
                     `;
                     tbody.appendChild(row);
                 });
+
+                const analyticsRes = await fetch("/api/v1/analytics");
+                const stats = await analyticsRes.json();
+                document.getElementById("statTotal").innerText = stats.total_scans;
+                document.getElementById("statMalicious").innerText = stats.malicious_detected;
+                document.getElementById("statLatency").innerText = stats.avg_latency_ms + " ms";
             } catch(e) {}
         }
 
         loadLogs();
-        setInterval(loadLogs, 5000);
+        setInterval(loadLogs, 4000);
     </script>
 </body>
 </html>
 ''')
 
-# 5. app/main.py (FastAPI Server with Web UI)
+# ------------------------------------------------------------------------------
+# 9. Main FastAPI Backend Server (app/main.py)
+# ------------------------------------------------------------------------------
 with open("app/main.py", "w") as f:
     f.write('''import time
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request, BackgroundTasks
 from fastapi.responses import HTMLResponse
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.templating import Jinja2Templates
-from pydantic import BaseModel
+from pydantic import BaseModel, HttpUrl
+from app.config import settings
 from app.redis_cache import RedisCacheManager
 from app.nlp_engine import AdvancedNLPEngine
 from app.whitelist import EnterpriseWhitelistGatekeeper
 from app.database import AuditLogger
 
 app = FastAPI(
-    title="Real-Time Phishing Detection Engine",
-    version="3.0",
-    description="Multi-Tier Glassmorphic Threat Intelligence Framework"
+    title=settings.PROJECT_NAME,
+    version=settings.VERSION,
+    description="Multi-Tier Enterprise Threat Intelligence Framework"
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 templates = Jinja2Templates(directory="app/templates")
@@ -569,12 +886,16 @@ class URLRequest(BaseModel):
     url: str
 
 @app.get("/", response_class=HTMLResponse)
-def serve_ui(request: Request):
+def serve_dashboard(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
 
-@app.get("/api/v1/logs")
+@app.get("/health")
+def health_check():
+    return {"status": "ONLINE", "engine_ready": nlp.ready, "version": settings.VERSION}
+
+@app.get(f"{settings.API_V1_PREFIX}/logs")
 def get_audit_logs():
-    raw_logs = logger.get_recent_logs(10)
+    raw_logs = logger.get_recent_logs(12)
     formatted = []
     for r in raw_logs:
         formatted.append({
@@ -588,52 +909,71 @@ def get_audit_logs():
         })
     return formatted
 
-@app.post("/api/v1/check-url")
-def analyze_url(payload: URLRequest):
+@app.get(f"{settings.API_V1_PREFIX}/analytics")
+def get_soc_analytics():
+    return logger.get_analytics()
+
+@app.post(f"{settings.API_V1_PREFIX}/check-url")
+def analyze_url(payload: URLRequest, background_tasks: BackgroundTasks):
     start_time = time.time()
     url = payload.url.strip()
 
     if not url:
         raise HTTPException(status_code=400, detail="Invalid URL payload")
 
+    # Tier-3 Whitelist Check
     if whitelist.is_whitelisted(url):
         execution_time = round((time.time() - start_time) * 1000, 3)
-        logger.log_scan(url, "SAFE", "Tier-3 Enterprise Whitelist", 0.0, execution_time)
+        background_tasks.add_task(logger.log_scan, url, "SAFE", "Tier-3 Whitelist", 0.0, execution_time)
         return {
             "url": url,
             "verdict": "SAFE",
-            "source": "Tier-3 Enterprise Whitelist",
+            "source": "Tier-3 Whitelist",
             "risk_score": 0.0,
             "latency": f"{execution_time} ms"
         }
 
+    # Tier-1 Cache Lookup
     cached = cache.get_verdict(url)
     if cached:
         execution_time = round((time.time() - start_time) * 1000, 3)
-        risk_score = float(cached.get("risk_score", 1.0 if cached.get("verdict") == "MALICIOUS" else 0.0))
-        logger.log_scan(url, cached.get("verdict"), "Tier-1 Redis Threat Cache", risk_score, execution_time)
+        risk_score = float(cached.get("risk_score", 0.0))
+        verdict = cached.get("verdict", "SAFE")
+        background_tasks.add_task(logger.log_scan, url, verdict, "Tier-1 Redis Cache", risk_score, execution_time)
         return {
             "url": url,
-            "verdict": cached.get("verdict"),
-            "source": "Tier-1 Redis Threat Cache",
+            "verdict": verdict,
+            "source": "Tier-1 Redis Cache",
             "risk_score": risk_score,
             "latency": f"{execution_time} ms"
         }
 
+    # Tier-2 Tri-Voting Ensemble NLP Inspection
     verdict, risk_score = nlp.predict(url)
     execution_time = round((time.time() - start_time) * 1000, 3)
 
     ttl = 86400 if verdict == "MALICIOUS" else (3600 if verdict == "SUSPICIOUS" else 43200)
     cache.set_verdict(url, verdict, risk_score, ttl=ttl)
-    logger.log_scan(url, verdict, "Tier-2 Advanced NLP Engine", risk_score, execution_time)
+    background_tasks.add_task(logger.log_scan, url, verdict, "Tier-2 Ensemble NLP", risk_score, execution_time)
 
     return {
         "url": url,
         "verdict": verdict,
-        "source": "Tier-2 Advanced Lexical-NLP Engine",
+        "source": "Tier-2 Ensemble NLP Engine",
         "risk_score": risk_score,
         "latency": f"{execution_time} ms"
     }
 ''')
 
-print("[+] setup_3.py created successfully inside backend!")
+print("[+] Master setup script written successfully! Generating initial ML artifacts...")
+
+# Execute model training upon setup creation
+import train_model
+train_model.train_and_export()
+
+print("\n==========================================================================")
+print("[+] PhishShield Enterprise SOC Architecture Setup Complete!")
+print("==========================================================================")
+print("Run the server using:")
+print("    uvicorn app.main:app --reload --port 8000")
+print("==========================================================================")

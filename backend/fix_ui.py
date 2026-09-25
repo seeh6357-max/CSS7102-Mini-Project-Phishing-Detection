@@ -1,4 +1,6 @@
-<!DOCTYPE html>
+import os
+
+html_content = """<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -440,4 +442,10 @@
         setInterval(loadLogs, 4000);
     </script>
 </body>
-</html>
+</html>"""
+
+os.makedirs("app/templates", exist_ok=True)
+with open("app/templates/index.html", "w") as f:
+    f.write(html_content)
+
+print("[+] Successfully updated app/templates/index.html!")

@@ -1,386 +1,400 @@
-import os
-
-os.makedirs("app", exist_ok=True)
-
-# 1. train_model.py
-with open("train_model.py", "w") as f:
-    f.write('''import os
+import abc
+import hashlib
+import json
+import logging
 import math
+import os
+import sys
+import time
+from concurrent.futures import ProcessPoolExecutor, as_completed
+from dataclasses import asdict, dataclass, field
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple, Union
+
+import joblib
 import numpy as np
 import pandas as pd
-from Levenshtein import distance as lev_distance
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.preprocessing import StandardScaler
+from scipy.stats import entropy
 from sklearn.base import BaseEstimator, TransformerMixin
-import joblib
+from sklearn.ensemble import IsolationForest
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import PowerTransformer, RobustScaler, StandardScaler
 
-class LexicalFeatureExtractor(BaseEstimator, TransformerMixin):
-    def __init__(self):
-        self.target_brands = ["paypal", "google", "microsoft", "apple", "amazon", "bankofamerica", "netflix", "presidencyuniversity"]
+# Try importing imblearn for advanced resampling; provide fallback if missing
+try:
+    from imblearn.combine import SMOTETomek
+    from imblearn.over_sampling import ADASYN, SMOTE
 
-    def calculate_entropy(self, text: str) -> float:
-        if not text:
-            return 0.0
-        prob = [float(text.count(c)) / len(text) for c in set(text)]
-        return -sum([p * math.log(p, 2) for p in prob])
+    HAS_IMBLEARN = True
+except ImportError:
+    HAS_IMBLEARN = False
 
-    def min_brand_distance(self, domain: str) -> int:
-        if not domain:
-            return 999
-        distances = [lev_distance(domain, brand) for brand in self.target_brands]
-        return min(distances) if distances else 999
+# ==========================================
+# 1. TELEMETRY & LOGGING SETUP
+# ==========================================
+logging.basicConfig(
+    level=logging.INFO,
+    format="[%(asctime)s] [%(levelname)s] [%(name)s] %(message)s",
+    handlers=[logging.StreamHandler(sys.stdout)],
+)
+logger = logging.getLogger("DataPipelineEngine")
 
-    def fit(self, X, y=None):
+
+# ==========================================
+# 2. PIPELINE CONFIGURATION SCHEMA
+# ==========================================
+@dataclass
+class PipelineConfig:
+    """Centralized configuration for dataset processing & artifact generation."""
+
+    raw_data_path: Path = Path("data/raw/dataset.csv")
+    output_dir: Path = Path("data/processed")
+    artifact_dir: Path = Path("artifacts/v1")
+
+    # Processing Parameters
+    test_size: float = 0.20
+    val_size: float = 0.10
+    random_state: int = 42
+    n_workers: int = field(default_factory=lambda: max(1, os.cpu_count() - 1))
+
+    # Feature Engineering Config
+    enable_entropy_features: bool = True
+    enable_outlier_rejection: bool = True
+    outlier_contamination: float = 0.02
+
+    # Imbalance Strategy: 'smote', 'smote_tomek', 'adasyn', or 'none'
+    resampling_strategy: str = "smote_tomek"
+
+    def __post_init__(self):
+        self.output_dir.mkdir(parents=True, exist_ok=True)
+        self.artifact_dir.mkdir(parents=True, exist_ok=True)
+
+
+# ==========================================
+# 3. ADVANCED MATHEMATICAL FEATURE EXTRACTORS
+# ==========================================
+class BaseFeatureExtractor(abc.ABC):
+    """Abstract base class for high-performance custom feature extractors."""
+
+    @abc.abstractmethod
+    def extract_row(self, item: Any) -> Dict[str, Union[int, float]]:
+        pass
+
+
+class InformationEntropyExtractor(BaseFeatureExtractor):
+    """Calculates Shannon Entropy and Lexical Ratios for structural data streams."""
+
+    def extract_row(self, item: str) -> Dict[str, Union[int, float]]:
+        if not isinstance(item, str) or not item:
+            return {
+                "shannon_entropy": 0.0,
+                "char_length": 0,
+                "digit_ratio": 0.0,
+                "special_char_ratio": 0.0,
+                "uppercase_ratio": 0.0,
+            }
+
+        length = len(item)
+        # Calculate character frequency probabilities
+        prob_dist = [
+            float(item.count(c)) / length for c in set(item)
+        ]
+        shannon_ent = float(entropy(prob_dist, base=2)) if prob_dist else 0.0
+
+        digits = sum(c.isdigit() for c in item)
+        uppercase = sum(c.isupper() for c in item)
+        specials = sum(not c.isalnum() for c in item)
+
+        return {
+            "shannon_entropy": round(shannon_ent, 5),
+            "char_length": length,
+            "digit_ratio": round(digits / length, 5),
+            "special_char_ratio": round(specials / length, 5),
+            "uppercase_ratio": round(uppercase / length, 5),
+        }
+
+
+# Dynamic chunk processing for multi-core scaling
+def _process_chunk(
+    chunk: List[Any], extractor_cls: type
+) -> List[Dict[str, Union[int, float]]]:
+    extractor = extractor_cls()
+    return [extractor.extract_row(item) for item in chunk]
+
+
+# ==========================================
+# 4. PREPROCESSING & SCALING TRANSFORMERS
+# ==========================================
+class AdvancedFeaturePipeline(BaseEstimator, TransformerMixin):
+    """
+    Combined transformer handling Power Transformations, Robust Scaling,
+    and Outlier Suppression.
+    """
+
+    def __init__(self, contamination: float = 0.02):
+        self.contamination = contamination
+        self.scaler = RobustScaler()
+        self.power_transformer = PowerTransformer(method="yeo-johnson")
+        self.outlier_detector = IsolationForest(
+            contamination=self.contamination, random_state=42, n_jobs=-1
+        )
+        self.is_fitted = False
+
+    def fit(self, X: np.ndarray, y: Optional[np.ndarray] = None):
+        logger.info("Fitting PowerTransformer (Yeo-Johnson) and RobustScaler...")
+        X_scaled = self.scaler.fit_transform(X)
+        self.power_transformer.fit(X_scaled)
+
+        logger.info("Fitting Isolation Forest Outlier Detector...")
+        self.outlier_detector.fit(X_scaled)
+
+        self.is_fitted = True
         return self
 
-    def transform(self, X):
-        features = []
-        for url in X:
-            url_str = str(url).lower()
-            url_length = len(url_str)
-            num_digits = sum(c.isdigit() for c in url_str)
-            digit_ratio = num_digits / url_length if url_length > 0 else 0
-            
-            num_special = sum(not c.isalnum() for c in url_str)
-            special_ratio = num_special / url_length if url_length > 0 else 0
-            
-            num_subdomains = url_str.count(".") - 1
-            has_ip = 1 if any(char.isdigit() for char in url_str.split("/")[0]) and url_str.count(".") == 3 else 0
-            
-            entropy = self.calculate_entropy(url_str)
-            domain = url_str.split("://")[-1].split("/")[0]
-            brand_dist = self.min_brand_distance(domain)
+    def transform(self, X: np.ndarray) -> np.ndarray:
+        if not self.is_fitted:
+            raise RuntimeError("Pipeline must be fitted before calling transform.")
+        X_scaled = self.scaler.transform(X)
+        X_trans = self.power_transformer.transform(X_scaled)
+        return X_trans
 
-            features.append([
-                url_length, digit_ratio, special_ratio, num_subdomains, has_ip, entropy, brand_dist
-            ])
-        return np.array(features)
+    def detect_outliers(self, X: np.ndarray) -> np.ndarray:
+        """Returns boolean mask where True indicates an inlier (non-outlier)."""
+        X_scaled = self.scaler.transform(X)
+        preds = self.outlier_detector.predict(X_scaled)
+        return preds == 1
 
-def train_and_export():
-    print("[*] Generating Comprehensive Training Dataset...")
-    data = {
-        "url": [
-            "https://www.google.com", "https://www.github.com", "https://www.wikipedia.org",
-            "https://www.microsoft.com", "https://www.amazon.com", "https://www.presidencyuniversity.in",
-            "https://stackoverflow.com", "https://www.python.org", "https://fastapi.tiangolo.com",
-            "https://redis.io", "https://scikit-learn.org", "https://www.linkedin.com",
-            "https://portal.presidencyuniversity.in/student/dashboard", "https://docs.python.org/3/library/index.html",
-            "http://login.paypal.com.account-verify.secure-update.xyz/login.php",
-            "http://secure-bankofamerica.update-login-credential.com/auth",
-            "http://account-google-security-verify.temp-web.net/signin",
-            "http://appleid.apple.com.verify.account.info-security.top/id",
-            "http://192.168.1.1/login.php?update=true&user=admin",
-            "http://free-crypto-giveaway-claim-now.site/claim",
-            "http://secure.signin.amazon.com-check.tk/auth",
-            "http://verify-identity-netflix-payment.support-now.online/billing",
-            "http://paypa1-security-center.account-verification-dispatch.info",
-            "http://presidency-university-exam-fee-portal.pay-online.tk"
-        ],
-        "label": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
-    }
 
-    df = pd.DataFrame(data)
-    os.makedirs("dataset", exist_ok=True)
-    df.to_csv("dataset/phishing_urls.csv", index=False)
+# ==========================================
+# 5. DATASET ENGINE & ORCHESTRATOR
+# ==========================================
+class SetupEngine:
+    """Main Orchestrator for setup2.py processing pipeline."""
 
-    X = df["url"]
-    y = df["label"]
+    def __init__(self, config: PipelineConfig):
+        self.config = config
+        self.entropy_extractor = InformationEntropyExtractor()
 
-    vectorizer = TfidfVectorizer(analyzer="char", ngram_range=(3, 5), max_features=1000)
-    lexical_extractor = LexicalFeatureExtractor()
+    def generate_synthetic_base_if_missing(self) -> pd.DataFrame:
+        """Ensures execution readiness by constructing a robust dummy dataset if raw source is missing."""
+        if self.config.raw_data_path.exists():
+            logger.info(f"Loading dataset from {self.config.raw_data_path}")
+            return pd.read_csv(self.config.raw_data_path)
 
-    X_tfidf = vectorizer.fit_transform(X).toarray()
-    X_lexical = lexical_extractor.transform(X)
-    
-    scaler = StandardScaler()
-    X_lexical_scaled = scaler.fit_transform(X_lexical)
-    X_combined = np.hstack((X_tfidf, X_lexical_scaled))
+        logger.warning(
+            f"Raw dataset not found at {self.config.raw_data_path}. Generating benchmark mock data..."
+        )
+        np.random.seed(self.config.random_state)
+        n_samples = 5000
 
-    clf = RandomForestClassifier(n_estimators=100, random_state=42)
-    clf.fit(X_combined, y)
+        payloads = [
+            "https://secure.auth-portal.com/login?token="
+            + "".join(np.random.choice(list("abcdef0123456789"), 24)),
+            "http://192.168.1.1/admin/config.php",
+            "SELECT * FROM users WHERE id = '1' OR '1'='1'",
+            "GET /api/v1/resource/status?query=normal",
+            "https://malicious-phishing-domain.xyz/verify-account/session-reset",
+        ]
 
-    os.makedirs("app", exist_ok=True)
-    joblib.dump(vectorizer, "app/vectorizer.pkl")
-    joblib.dump(scaler, "app/scaler.pkl")
-    joblib.dump(clf, "app/model.pkl")
-    print("[+] Advanced Model Artifacts Exported Successfully!")
-
-if __name__ == "__main__":
-    train_and_export()
-''')
-
-# 2. app/redis_cache.py
-with open("app/redis_cache.py", "w") as f:
-    f.write('''import redis
-import os
-import hashlib
-
-class RedisCacheManager:
-    def __init__(self):
-        self.host = os.getenv("REDIS_HOST", "localhost")
-        self.port = int(os.getenv("REDIS_PORT", 6379))
-        try:
-            self.client = redis.Redis(host=self.host, port=self.port, decode_responses=True)
-            self.client.ping()
-            print("[+] Tier-1 Redis Threat Cache Initialized.")
-        except Exception as e:
-            print(f"[-] Redis Cache Warning: {e}")
-            self.client = None
-
-    def _hash_url(self, url: str) -> str:
-        return hashlib.sha256(url.strip().lower().encode("utf-8")).hexdigest()
-
-    def get_verdict(self, url: str):
-        if not self.client:
-            return None
-        url_hash = self._hash_url(url)
-        data = self.client.hgetall(f"url:{url_hash}")
-        if data:
-            return data
-        return None
-
-    def set_verdict(self, url: str, verdict: str, risk_score: float, ttl: int = 3600):
-        if not self.client:
-            return
-        url_hash = self._hash_url(url)
-        key = f"url:{url_hash}"
-        self.client.hset(key, mapping={
-            "verdict": verdict,
-            "risk_score": str(risk_score),
-            "raw_url": url
-        })
-        self.client.expire(key, ttl)
-''')
-
-# 3. app/nlp_engine.py
-with open("app/nlp_engine.py", "w") as f:
-    f.write('''import joblib
-import os
-import math
-import numpy as np
-from Levenshtein import distance as lev_distance
-
-class AdvancedNLPEngine:
-    def __init__(self):
-        vec_path = "app/vectorizer.pkl"
-        scaler_path = "app/scaler.pkl"
-        model_path = "app/model.pkl"
-        self.target_brands = ["paypal", "google", "microsoft", "apple", "amazon", "bankofamerica", "netflix", "presidencyuniversity"]
-        
-        if os.path.exists(vec_path) and os.path.exists(scaler_path) and os.path.exists(model_path):
-            self.vectorizer = joblib.load(vec_path)
-            self.scaler = joblib.load(scaler_path)
-            self.model = joblib.load(model_path)
-            self.ready = True
-            print("[+] Tier-2 Advanced NLP Engine Online.")
-        else:
-            self.ready = False
-            print("[-] NLP Engine Error: Missing Model Artifacts.")
-
-    def _calculate_entropy(self, text: str) -> float:
-        if not text:
-            return 0.0
-        prob = [float(text.count(c)) / len(text) for c in set(text)]
-        return -sum([p * math.log(p, 2) for p in prob])
-
-    def _extract_lexical_features(self, url: str):
-        url_str = url.lower()
-        url_length = len(url_str)
-        num_digits = sum(c.isdigit() for c in url_str)
-        digit_ratio = num_digits / url_length if url_length > 0 else 0
-        
-        num_special = sum(not c.isalnum() for c in url_str)
-        special_ratio = num_special / url_length if url_length > 0 else 0
-        
-        num_subdomains = url_str.count(".") - 1
-        has_ip = 1 if any(char.isdigit() for char in url_str.split("/")[0]) and url_str.count(".") == 3 else 0
-        
-        entropy = self._calculate_entropy(url_str)
-        domain = url_str.split("://")[-1].split("/")[0]
-        distances = [lev_distance(domain, brand) for brand in self.target_brands]
-        brand_dist = min(distances) if distances else 999
-
-        return np.array([[
-            url_length, digit_ratio, special_ratio, num_subdomains, has_ip, entropy, brand_dist
-        ]])
-
-    def predict(self, url: str):
-        if not self.ready:
-            return "UNKNOWN", 0.0
-
-        tfidf_feat = self.vectorizer.transform([url]).toarray()
-        lex_feat = self._extract_lexical_features(url)
-        lex_scaled = self.scaler.transform(lex_feat)
-
-        combined_features = np.hstack((tfidf_feat, lex_scaled))
-        prob = self.model.predict_proba(combined_features)[0][1]
-        
-        if prob >= 0.80:
-            verdict = "MALICIOUS"
-        elif prob >= 0.50:
-            verdict = "SUSPICIOUS"
-        else:
-            verdict = "SAFE"
-
-        return verdict, round(float(prob), 4)
-''')
-
-# 4. app/whitelist.py
-with open("app/whitelist.py", "w") as f:
-    f.write('''from urllib.parse import urlparse
-
-class EnterpriseWhitelistGatekeeper:
-    def __init__(self):
-        self.whitelisted_domains = {
-            "presidencyuniversity.in",
-            "google.com",
-            "github.com",
-            "microsoft.com",
-            "wikipedia.org",
-            "amazon.com",
-            "python.org",
-            "stackoverflow.com"
+        data = {
+            "raw_payload": [
+                np.random.choice(payloads) + f"&id={i}" for i in range(n_samples)
+            ],
+            "feature_val_1": np.random.exponential(scale=2.0, size=n_samples),
+            "feature_val_2": np.random.normal(loc=50.0, scale=15.0, size=n_samples),
+            "feature_val_3": np.random.uniform(low=0.0, high=1.0, size=n_samples),
+            "target": np.random.choice(
+                [0, 1], size=n_samples, p=[0.85, 0.15]
+            ),  # Imbalanced
         }
+        df = pd.DataFrame(data)
 
-    def is_whitelisted(self, url: str) -> bool:
-        try:
-            parsed = urlparse(url)
-            domain = parsed.netloc.lower() or parsed.path.split("/")[0].lower()
-            domain = domain.split(":")[0]
-            
-            if domain in self.whitelisted_domains:
-                return True
-                
-            for trusted in self.whitelisted_domains:
-                if domain.endswith("." + trusted):
-                    return True
-            return False
-        except Exception:
-            return False
-''')
+        # Save synthetic base
+        self.config.raw_data_path.parent.mkdir(parents=True, exist_ok=True)
+        df.to_csv(self.config.raw_data_path, index=False)
+        logger.info(
+            f"Benchmark raw data generated and stored at {self.config.raw_data_path}"
+        )
+        return df
 
-# 5. app/database.py
-with open("app/database.py", "w") as f:
-    f.write('''import sqlite3
-import os
-from datetime import datetime
+    def run_parallel_feature_extraction(self, text_series: pd.Series) -> pd.DataFrame:
+        """Splits raw text streams across CPU worker cores for fast parallel extraction."""
+        logger.info(
+            f"Executing parallel extraction using {self.config.n_workers} worker processes..."
+        )
+        items = text_series.tolist()
+        chunk_size = math.ceil(len(items) / self.config.n_workers)
+        chunks = [
+            items[i : i + chunk_size] for i in range(0, len(items), chunk_size)
+        ]
 
-class AuditLogger:
-    def __init__(self, db_path="app/audit_logs.db"):
-        self.db_path = db_path
-        self._init_db()
+        extracted_records = []
+        start_time = time.time()
 
-    def _init_db(self):
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS scan_logs (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                url TEXT NOT NULL,
-                verdict TEXT NOT NULL,
-                source TEXT NOT NULL,
-                risk_score REAL NOT NULL,
-                latency_ms REAL NOT NULL,
-                timestamp TEXT NOT NULL
+        with ProcessPoolExecutor(max_workers=self.config.n_workers) as executor:
+            futures = [
+                executor.submit(
+                    _process_chunk, chunk, InformationEntropyExtractor
+                )
+                for chunk in chunks
+            ]
+            for future in as_completed(futures):
+                extracted_records.extend(future.result())
+
+        elapsed = time.time() - start_time
+        logger.info(
+            f"Parallel extraction finished in {elapsed:.3f}s ({len(items)} samples processed)."
+        )
+        return pd.DataFrame(extracted_records)
+
+    def balance_dataset(
+        self, X: np.ndarray, y: np.ndarray
+    ) -> Tuple[np.ndarray, np.ndarray]:
+        """Applies advanced resampling strategy to address severe class imbalance."""
+        if not HAS_IMBLEARN or self.config.resampling_strategy == "none":
+            logger.info("Skipping class balancing (imblearn disabled or bypassed).")
+            return X, y
+
+        logger.info(
+            f"Applying resampling strategy: '{self.config.resampling_strategy}'..."
+        )
+        orig_counts = dict(zip(*np.unique(y, return_counts=True)))
+        logger.info(f"Class distribution before resampling: {orig_counts}")
+
+        if self.config.resampling_strategy == "smote_tomek":
+            resampler = SMOTETomek(random_state=self.config.random_state)
+        elif self.config.resampling_strategy == "adasyn":
+            resampler = ADASYN(random_state=self.config.random_state)
+        else:
+            resampler = SMOTE(random_state=self.config.random_state)
+
+        X_res, y_res = resampler.fit_resample(X, y)
+        new_counts = dict(zip(*np.unique(y_res, return_counts=True)))
+        logger.info(f"Class distribution after resampling: {new_counts}")
+
+        return X_res, y_res
+
+    def execute_pipeline(self):
+        """Main execution sequence."""
+        logger.info("Starting setup2.py execution pipeline...")
+
+        # Step 1: Ingest Raw Data
+        df = self.generate_synthetic_base_if_missing()
+
+        # Step 2: Feature Extraction
+        if (
+            self.config.enable_entropy_features
+            and "raw_payload" in df.columns
+        ):
+            features_df = self.run_parallel_feature_extraction(df["raw_payload"])
+            df = pd.concat([df.drop(columns=["raw_payload"]), features_df], axis=1)
+
+        X = df.drop(columns=["target"]).values
+        y = df["target"].values
+        feature_names = [col for col in df.columns if col != "target"]
+
+        # Step 3: Train/Val/Test Split
+        logger.info(
+            f"Splitting data (Test: {self.config.test_size}, Val: {self.config.val_size})..."
+        )
+        X_train_val, X_test, y_train_val, y_test = train_test_split(
+            X,
+            y,
+            test_size=self.config.test_size,
+            random_state=self.config.random_state,
+            stratify=y,
+        )
+
+        val_ratio_adjusted = self.config.val_size / (1.0 - self.config.test_size)
+        X_train, X_val, y_train, y_val = train_test_split(
+            X_train_val,
+            y_train_val,
+            test_size=val_ratio_adjusted,
+            random_state=self.config.random_state,
+            stratify=y_train_val,
+        )
+
+        # Step 4: Fit Advanced Pipeline & Remove Outliers
+        transformer_pipeline = AdvancedFeaturePipeline(
+            contamination=self.config.outlier_contamination
+        )
+        transformer_pipeline.fit(X_train)
+
+        if self.config.enable_outlier_rejection:
+            inlier_mask = transformer_pipeline.detect_outliers(X_train)
+            logger.info(
+                f"Outlier suppression: Dropping {np.sum(~inlier_mask)} samples from training set."
             )
-        """)
-        conn.commit()
-        conn.close()
+            X_train = X_train[inlier_mask]
+            y_train = y_train[inlier_mask]
 
-    def log_scan(self, url: str, verdict: str, source: str, risk_score: float, latency_ms: float):
-        try:
-            conn = sqlite3.connect(self.db_path)
-            cursor = conn.cursor()
-            cursor.execute("""
-                INSERT INTO scan_logs (url, verdict, source, risk_score, latency_ms, timestamp)
-                VALUES (?, ?, ?, ?, ?, ?)
-            """, (url, verdict, source, risk_score, latency_ms, datetime.utcnow().isoformat()))
-            conn.commit()
-            conn.close()
-        except Exception as e:
-            print(f"[-] Database Logging Error: {e}")
-''')
+        # Step 5: Transform Arrays
+        X_train_transformed = transformer_pipeline.transform(X_train)
+        X_val_transformed = transformer_pipeline.transform(X_val)
+        X_test_transformed = transformer_pipeline.transform(X_test)
 
-# 6. app/main.py
-with open("app/main.py", "w") as f:
-    f.write('''import time
-from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
-from app.redis_cache import RedisCacheManager
-from app.nlp_engine import AdvancedNLPEngine
-from app.whitelist import EnterpriseWhitelistGatekeeper
-from app.database import AuditLogger
+        # Step 6: Class Resampling (Train set only)
+        X_train_balanced, y_train_balanced = self.balance_dataset(
+            X_train_transformed, y_train
+        )
 
-app = FastAPI(
-    title="Real-Time Phishing Detection Engine",
-    version="2.0",
-    description="Multi-Tier Threat Intelligence Framework"
-)
+        # Step 7: Serialize Datasets to Compressed Parquet
+        logger.info("Persisting processed splits into Parquet datasets...")
 
-cache = RedisCacheManager()
-nlp = AdvancedNLPEngine()
-whitelist = EnterpriseWhitelistGatekeeper()
-logger = AuditLogger()
+        def export_parquet(
+            X_arr: np.ndarray, y_arr: np.ndarray, filename: str
+        ) -> Path:
+            out_df = pd.DataFrame(X_arr, columns=feature_names)
+            out_df["target"] = y_arr
+            target_path = self.config.output_dir / filename
+            out_df.to_parquet(target_path, compression="zstd", index=False)
+            return target_path
 
-class URLRequest(BaseModel):
-    url: str
+        train_path = export_parquet(
+            X_train_balanced, y_train_balanced, "train.parquet"
+        )
+        val_path = export_parquet(X_val_transformed, y_val, "val.parquet")
+        test_path = export_parquet(X_test_transformed, y_test, "test.parquet")
 
-@app.get("/")
-def health_check():
-    return {
-        "status": "ONLINE",
-        "system": "Hybrid Phishing Detection Framework",
-        "version": "2.0",
-        "tiers": ["Tier-1 Redis Cache", "Tier-2 NLP Engine", "Tier-3 Enterprise Whitelist"]
-    }
+        # Step 8: Save Pipeline Artifacts & Meta Hashes
+        pipeline_artifact_path = (
+            self.config.artifact_dir / "preprocessing_pipeline.joblib"
+        )
+        joblib.dump(transformer_pipeline, pipeline_artifact_path)
+        logger.info(f"Transformer pipeline saved to {pipeline_artifact_path}")
 
-@app.post("/api/v1/check-url")
-def analyze_url(payload: URLRequest):
-    start_time = time.time()
-    url = payload.url.strip()
+        # Compute hash of final train dataset for provenance tracking
+        with open(train_path, "rb") as f:
+            dataset_hash = hashlib.sha256(f.read()).hexdigest()
 
-    if not url:
-        raise HTTPException(status_code=400, detail="Invalid URL payload")
-
-    if whitelist.is_whitelisted(url):
-        execution_time = round((time.time() - start_time) * 1000, 3)
-        logger.log_scan(url, "SAFE", "Tier-3 Enterprise Whitelist", 0.0, execution_time)
-        return {
-            "url": url,
-            "verdict": "SAFE",
-            "source": "Tier-3 Enterprise Whitelist",
-            "risk_score": 0.0,
-            "latency": f"{execution_time} ms"
+        metadata = {
+            "timestamp": time.strftime("%Y-%m-%d %H:%M:%S IST"),
+            "dataset_sha256": dataset_hash,
+            "feature_names": feature_names,
+            "num_features": len(feature_names),
+            "train_samples": len(X_train_balanced),
+            "val_samples": len(X_val_transformed),
+            "test_samples": len(X_test_transformed),
+            "resampling_applied": self.config.resampling_strategy,
+            "artifacts": {
+                "pipeline": str(pipeline_artifact_path),
+                "train_data": str(train_path),
+                "val_data": str(val_path),
+                "test_data": str(test_path),
+            },
         }
 
-    cached = cache.get_verdict(url)
-    if cached:
-        execution_time = round((time.time() - start_time) * 1000, 3)
-        risk_score = float(cached.get("risk_score", 1.0 if cached.get("verdict") == "MALICIOUS" else 0.0))
-        logger.log_scan(url, cached.get("verdict"), "Tier-1 Redis Threat Cache", risk_score, execution_time)
-        return {
-            "url": url,
-            "verdict": cached.get("verdict"),
-            "source": "Tier-1 Redis Threat Cache",
-            "risk_score": risk_score,
-            "latency": f"{execution_time} ms"
-        }
+        meta_path = self.config.artifact_dir / "pipeline_metadata.json"
+        with open(meta_path, "w") as f:
+            json.dump(metadata, f, indent=4)
 
-    verdict, risk_score = nlp.predict(url)
-    execution_time = round((time.time() - start_time) * 1000, 3)
+        logger.info(f"Execution complete. Meta manifest saved to {meta_path}")
 
-    ttl = 86400 if verdict == "MALICIOUS" else (3600 if verdict == "SUSPICIOUS" else 43200)
-    cache.set_verdict(url, verdict, risk_score, ttl=ttl)
-    logger.log_scan(url, verdict, "Tier-2 Advanced NLP Engine", risk_score, execution_time)
 
-    return {
-        "url": url,
-        "verdict": verdict,
-        "source": "Tier-2 Advanced Lexical-NLP Engine",
-        "risk_score": risk_score,
-        "latency": f"{execution_time} ms"
-    }
-''')
-
-print("[+] All 2.0 backend engine files written successfully!")
+# ==========================================
+# 6. ENTRYPOINT
+# ==========================================
+if __name__ == "__main__":
+    config = PipelineConfig()
+    engine = SetupEngine(config)
+    engine.execute_pipeline()

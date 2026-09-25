@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PhishShield SOC // MITRE ATT&CK Matrix Threat Mapping</title>
+    <style>
+        :root {
+            --bg-base: #080203;
+            --bg-card: #120507;
+            --border-red: #ff1e43;
+            --border-dim: #4a0d17;
+            --text-red: #ff2e4d;
+            --text-glow: #ff556e;
+            --text-dim: #a34854;
+            --accent-green: #00ff66;
+            --font-mono: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: var(--font-mono); }
+        body { background-color: var(--bg-base); color: var(--text-red); padding: 15px; font-size: 12px; }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border: 1px solid var(--border-red);
+            background: var(--bg-card);
+            padding: 10px 20px;
+            margin-bottom: 15px;
+        }
+
+        nav a {
+            color: var(--text-dim);
+            text-decoration: none;
+            text-transform: uppercase;
+            font-size: 11px;
+            font-weight: bold;
+            padding: 5px 10px;
+        }
+
+        nav a:hover, nav a.active {
+            color: var(--text-glow);
+            border: 1px solid var(--border-red);
+            background: rgba(255, 30, 67, 0.1);
+        }
+
+        .matrix-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 10px;
+        }
+
+        .column {
+            background: var(--bg-card);
+            border: 1px solid var(--border-dim);
+            padding: 10px;
+        }
+
+        .column-header {
+            font-weight: bold;
+            color: var(--text-glow);
+            border-bottom: 1px solid var(--border-red);
+            padding-bottom: 5px;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .technique-card {
+            background: #000;
+            border: 1px solid var(--border-dim);
+            padding: 8px;
+            margin-bottom: 8px;
+            font-size: 10px;
+        }
+
+        .technique-card.active-threat {
+            border-color: var(--border-red);
+            background: rgba(255, 30, 67, 0.15);
+        }
+
+        .tech-id { color: var(--text-glow); font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div style="font-weight: bold; letter-spacing: 2px;">
+            [+] MITRE ATT&CK® ENTERPRISE MATRIX MAPPING
+        </div>
+        <nav>
+            <a href="index.html">&lt; RETURN TO MAIN COMMAND CENTER</a>
+            <a href="audit_log_details.html">02. AUDIT STREAM LOGS</a>
+            <a href="mitre_matrix.html" class="active">03. MITRE ATT&CK MATRIX</a>
+        </nav>
+    </header>
+
+    <div class="matrix-grid">
+        
+        <!-- COL 1 -->
+        <div class="column">
+            <div class="column-header">INITIAL ACCESS</div>
+            <div class="technique-card active-threat">
+                <div class="tech-id">T1566.001</div>
+                <div>Spearphishing Attachment</div>
+            </div>
+            <div class="technique-card active-threat">
+                <div class="tech-id">T1566.002</div>
+                <div>Spearphishing Link</div>
+            </div>
+            <div class="technique-card">
+                <div class="tech-id">T1190</div>
+                <div>Exploit Public Application</div>
+            </div>
+        </div>
+
+        <!-- COL 2 -->
+        <div class="column">
+            <div class="column-header">EXECUTION</div>
+            <div class="technique-card">
+                <div class="tech-id">T1059.001</div>
+                <div>PowerShell Scripting</div>
+            </div>
+            <div class="technique-card active-threat">
+                <div class="tech-id">T1204.002</div>
+                <div>User Execution: Malicious File</div>
+            </div>
+        </div>
+
+        <!-- COL 3 -->
+        <div class="column">
+            <div class="column-header">CREDENTIAL ACCESS</div>
+            <div class="technique-card active-threat">
+                <div class="tech-id">T1056.001</div>
+                <div>Input Capture: Keylogging</div>
+            </div>
+            <div class="technique-card">
+                <div class="tech-id">T1110</div>
+                <div>Brute Force Credentials</div>
+            </div>
+        </div>
+
+        <!-- COL 4 -->
+        <div class="column">
+            <div class="column-header">DEFENSE EVASION</div>
+            <div class="technique-card active-threat">
+                <div class="tech-id">T1036.005</div>
+                <div>Masquerading: Match Name</div>
+            </div>
+            <div class="technique-card">
+                <div class="tech-id">T1027</div>
+                <div>Obfuscated Files or Code</div>
+            </div>
+        </div>
+
+        <!-- COL 5 -->
+        <div class="column">
+            <div class="column-header">COMMAND & CONTROL</div>
+            <div class="technique-card">
+                <div class="tech-id">T1071.001</div>
+                <div>Application Layer Protocol: Web</div>
+            </div>
+            <div class="technique-card">
+                <div class="tech-id">T1568.002</div>
+                <div>Dynamic Resolution: DGA</div>
+            </div>
+        </div>
+
+    </div>
+
+</body>
+</html>

@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PhishShield // SIEM Forensic Investigation</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        cyberBlack: '#020408',
+                        panelBg: 'rgba(8, 12, 20, 0.75)',
+                        crimsonRed: '#ff003c',
+                        terminalGreen: '#10b981',
+                        cyberAmber: '#f59e0b',
+                        cyberBorder: 'rgba(255, 0, 60, 0.25)'
+                    }
+                }
+            }
+        }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            font-family: 'JetBrains Mono', monospace;
+            background: #020408;
+            background-image: 
+                linear-gradient(to right, rgba(255, 0, 60, 0.03) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(255, 0, 60, 0.03) 1px, transparent 1px);
+            background-size: 24px 24px;
+            min-height: 100vh;
+        }
+        .red-glass {
+            background: rgba(12, 6, 14, 0.7);
+            backdrop-filter: blur(25px) saturate(200%);
+            border: 1px solid rgba(255, 0, 60, 0.25);
+            box-shadow: 0 0 35px rgba(255, 0, 60, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        }
+        .cyber-card {
+            background: rgba(18, 24, 38, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-track { background: #020408; }
+        ::-webkit-scrollbar-thumb { background: #ff003c; border-radius: 99px; }
+    </style>
+</head>
+<body class="text-slate-200 p-4 md:p-8 antialiased">
+
+    <div class="max-w-[1600px] mx-auto space-y-6">
+
+        <!-- HEADER NAVIGATION -->
+        <header class="red-glass rounded-xl p-5 flex flex-col md:flex-row justify-between items-center gap-4">
+            <div class="flex items-center gap-4">
+                <a href="/" class="px-3.5 py-2 rounded-lg bg-red-950/40 border border-red-500/40 text-red-400 hover:bg-red-900/60 transition-all text-xs font-bold uppercase tracking-wider flex items-center gap-2">
+                    <i class="fa-solid fa-arrow-left"></i> Return to Main SOC Console
+                </a>
+                <div>
+                    <h1 class="text-lg font-extrabold text-white uppercase tracking-tight">SIEM Forensic Deep Investigation</h1>
+                    <p class="text-xs text-slate-400">Transaction Event Record: <span id="logIdDisplay" class="text-red-400 font-bold">#--</span></p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-3 text-xs">
+                <span class="px-3 py-1.5 rounded bg-red-500/10 border border-red-500/30 text-red-400 font-bold uppercase">CLASSIFICATION: HIGH THREAT</span>
+                <span class="px-3 py-1.5 rounded bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-bold">AUDIT VERIFIED</span>
+            </div>
+        </header>
+
+        <!-- MAIN INVESTIGATION BOARD -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+            <!-- LEFT 2 COLS: DEEP TECHNICAL DRILL-DOWN -->
+            <div class="lg:col-span-2 space-y-6">
+
+                <!-- TARGET PARAMETER OVERVIEW -->
+                <div class="red-glass rounded-xl p-6 space-y-4">
+                    <div class="flex justify-between items-center border-b border-red-500/20 pb-3">
+                        <h2 class="text-xs font-bold text-red-400 uppercase tracking-widest flex items-center gap-2">
+                            <i class="fa-solid fa-microchip"></i> Inspected Target Payload Parameters
+                        </h2>
+                        <span id="detailTimestamp" class="text-[11px] text-slate-400">UTC Timestamp: --</span>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="cyber-card p-4 rounded-lg md:col-span-2 space-y-1">
+                            <span class="text-[10px] text-slate-400 uppercase font-bold">Full Destination URL</span>
+                            <div id="detailURL" class="text-sm font-bold text-white break-all">Loading...</div>
+                        </div>
+
+                        <div class="cyber-card p-4 rounded-lg space-y-1">
+                            <span class="text-[10px] text-slate-400 uppercase font-bold">Verdict / Execution Source</span>
+                            <div id="detailVerdict" class="text-sm font-extrabold text-red-Here is the comprehensive HTML markup for **PhishShield SIEM & SOC Operational Dashboard**, transformed with a high-density, "red-team hacker / threat intel matrix" aesthetic.
+
+To keep the structure modular and extensible, this layout is broken down into **three primary interconnected HTML files**:
+
+1. `index.html` – Primary SOC Command Center & Live Threat Scanner (contains the main dashboard, real-time telemetry, MITRE ATT&CK breakdown, feature metrics, and the audit telemetry log stream).
+2. `audit_log_details.html` – Deep-Dive Forensic Audit Stream & Historical Scan Explorer (detailed log breakdown with raw JSON telemetry, payload hex dumps, and sandbox execution trace).
+3. `mitre_matrix.html` – Full MITRE ATT&CK® Threat Vector Mapping Matrix & Playbook Registry.
+
+---
+
+### File 1: `index.html` (Main SOC & Threat Scanner)
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PhishShield SIEM & SOC // Threat Intelligence Operating Matrix v4.0.9</title>
+    <!-- Dark Red & Cyberpunk Theme Assets -->
+    <style>
+        :root {
+            --bg-base: #080203;
+            --bg-card: #120507;
+            --bg-card-hover: #1c080b;
+            --border-red: #ff1e43;
+            --border-dim: #4a0d17;
+            --text-red: #ff2e4d;
+            --text-glow: #ff556e;
+            --text-dim: #a34854;
+            --text-muted: #5e2830;
+            --accent-green: #00ff66;
+            --accent-amber: #ffaa00;
+            --font-mono: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: var(--font-mono);
+        }
+
+        body {
+            background-color: var(--bg-base);
+            color: var(--text-red);
+            padding: 15px;
+            font-size: 13px;
+            line-height: 1.4;
+            background-image: 
+                radial-gradient(circle at 50% 50%, rgba(40, 0, 10, 0.4) 0%, rgba(5, 0, 2, 0.95) 100%),
+                linear-gradient(rgba(255, 30, 67, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 30, 67, 0.03) 1px, transparent 1px);
+            background-size: 100% 100%, 20px 20px, 20px 20px;
+        }
+
+        /* Scanline Overlay Effect */
+        body::before {
+            content: " ";
+            display: block;
+            position: fixed;
+            top: 0; left: 0; bottom: 0; right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%);
+            background-size: 100% 4px;
+            z-index: 999;
+            pointer-events: none;
+            opacity: 0.6;
+        }
+
+        /* Top Navigation Header */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border: 1px solid var(--border-red);
+            background: var(--bg-card);
+            padding: 10px 20px;
+            box-shadow: 0 0 15px rgba(255, 30, 67, 0.2);
+            margin-bottom: 15px;
+        }
+
+        .brand-title {
+            font-size: 18px;
+            font-weight: bold;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            text-shadow: 0 0 8px var(--border-red);
+        }
+
+        .status-badge {
+            background-color: rgba(255, 30, 67, 0.15);
+            border: 1px solid var(--border-red);
+            padding: 4px 10px;
+            font-size: 11px;
+            color: var(--text-glow);
+            text-transform: uppercase;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .pulse-dot {
+            width: 8px;
+            height: 8px;
+            background-color: var(--border-red);
+            border-radius: 50%;
+            box-shadow: 0 0 10px var(--border-red);
+        }
+
+        nav ul {
+            display: flex;
+            list-style: none;
+            gap: 15px;
+        }
+
+        nav a {
+            color: var(--text-dim);
+            text-decoration: none;
+            text-transform: uppercase;
+            font-size: 11px;
+            font-weight: bold;
+            padding: 5px 10px;
+            border: 1px solid transparent;
+            transition: all 0.2s ease;
+        }
+
+        nav a:hover, nav a.active {
+            color: var(--text-glow);
+            border-color: var(--border-red);
+            background: rgba(255, 30, 67, 0.1);
+        }
+
+        /* Container Layout Grid */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-dim);
+            padding: 15px;
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.8);
+            position: relative;
+        }
+
+        .card:hover {
+            border-color: var(--border-red);
+        }
+
+        .card-header {
+            font-size: 12px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border-bottom: 1px solid var(--border-dim);
+            padding-bottom: 8px;
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        /* Input Controls */
+        .scan-bar {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .scan-input {
+            flex-grow: 1;
+            background: #000;
+            border: 1px solid var(--border-dim);
+            padding: 10px 15px;
+            color: var(--text-glow);
+            font-family: var(--font-mono);
+            font-size: 14px;
+            outline: none;
+        }
+
+        .scan-input:focus {
+            border-color: var(--border-red);
+            box-shadow: 0 0 10px rgba(255, 30, 67, 0.3);
+        }
+
+        .btn-red {
+            background: var(--border-red);
+            color: #000;
+            border: none;
+            padding: 10px 20px;
+            font-weight: bold;
+            text-transform: uppercase;
+            cursor: pointer;
+            letter-spacing: 1px;
+        }
+
+        .btn-red:hover {
+            background: var(--text-glow);
+            box-shadow: 0 0 15px var(--border-red);
+        }
+
+        /* Gauge Display Matrix */
+        .metrics-bar {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .metric-box {
+            background: #0a0304;
+            border: 1px solid var(--border-dim);
+            padding: 10px;
+            text-align: center;
+        }
+
+        .metric-label {
+            font-size: 9px;
+            text-transform: uppercase;
+            color: var(--text-dim);
+            margin-bottom: 5px;
+        }
+
+        .metric-value {
+            font-size: 16px;
+            font-weight: bold;
+            color: var(--text-glow);
+        }
+
+        /* Data Tables */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 11px;
+            text-align: left;
+        }
+
+        th {
+            background: rgba(255, 30, 67, 0.1);
+            color: var(--text-glow);
+            padding: 8px;
+            border-bottom: 1px solid var(--border-red);
+            text-transform: uppercase;
+        }
+
+        td {
+            padding: 8px;
+            border-bottom: 1px solid var(--border-dim);
+            color: var(--text-dim);
+        }
+
+        tr:hover td {
+            background: rgba(255, 30, 67, 0.05);
+            color: var(--text-glow);
+        }
+
+        .status-flag {
+            padding: 2px 6px;
+            font-size: 9px;
+            font-weight: bold;
+            text-transform: uppercase;
+            border-radius: 2px;
+        }
+
+        .flag-red { background: rgba(255, 30, 67, 0.2); color: var(--border-red); border: 1px solid var(--border-red); }
+        .flag-green { background: rgba(0, 255, 102, 0.2); color: var(--accent-green); border: 1px solid var(--accent-green); }
+        .flag-amber { background: rgba(255, 170, 0, 0.2); color: var(--accent-amber); border: 1px solid var(--accent-amber); }
+
+        .link-detail {
+            color: var(--border-red);
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        .link-detail:hover {
+            text-decoration: underline;
+            color: var(--text-glow);
+        }
+
+        footer {
+            margin-top: 20px;
+            border-top: 1px solid var(--border-dim);
+            padding-top: 10px;
+            display: flex;
+            justify-content: space-between;
+            font-size: 10px;
+            color: var(--text-muted);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- TOP CONTROL HEADER -->
+    <header>
+        <div class="brand-title">
+            [+] PHISHSHIELD // SIEM THREAT MATRIX
+        </div>
+        <div class="status-badge">
+            <div class="pulse-dot"></div>
+            RED-TEAM ACTIVE RECONNAISSANCE MODE // ENGINE: ONLINE
+        </div>
+        <nav>
+            <ul>
+                <li><a href="index.html" class="active">01. COMMAND CENTER</a></li>
+                <li><a href="audit_log_details.html">02. AUDIT STREAM LOGS</a></li>
+                <li><a href="mitre_matrix.html">03. MITRE ATT&CK MATRIX</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <!-- LIVE TARGET TARGET SELECTION BAR -->
+    <div class="card" style="margin-bottom: 15px;">
+        <div class="card-header">
+            <span>TARGET VECTOR SCANNING ENGINE</span>
+            <span>LATENCY: 0.037 ms // PORT: 8000</span>
+        </div>
+        <div class="scan-bar">
+            <input type="text" class="scan-input" value="[https://www.presidencyuniversity.in](https://www.presidencyuniversity.in)" placeholder="ENTER TARGET DOMAIN, IP, OR PAYLOAD HASH...">
+            <button class="btn-red">EXECUTE DEEP FORENSIC SCAN</button>
+        </div>
+        <div style="display: flex; gap: 20px; font-size: 10px; color: var(--text-dim);">
+            <span>STATUS: <strong style="color: var(--accent-green);">SAFE</strong></span>
+            <span>VERIFICATION: <strong style="color: var(--text-glow);">Tier-3 Enterprise Whitelist</strong></span>
+            <span>REPUTATION SCORE: <strong style="color: var(--text-glow);">100/100 TRUSTED</strong></span>
+            <span>ENGINE TYPE: <strong style="color: var(--text-dim);">Heuristic + Random Forest Classifier v2.1</strong></span>
+        </div>
+    </div>
+
+    <!-- MAIN DASHBOARD CONTENT GRID -->
+    <div class="dashboard-grid">
+        
+        <!-- LEFT PANEL: PRIMARY THREAT FORENSIC REPORT -->
+        <div class="card">
+            <div class="card-header">
+                <span>[!] AI SIEM THREAT FORENSIC REPORT</span>
+                <span class="status-flag flag-green">SEVERITY: INFORMATIONAL</span>
+            </div>
+
+            <div style="background: rgba(0,0,0,0.5); border: 1px solid var(--border-dim); padding: 12px; margin-bottom: 15px;">
+                <p style="color: var(--text-glow); font-weight: bold; margin-bottom: 5px;">
+                    VERIFIED TRUSTED DOMAIN: The domain is cryptographically validated against the top 1M & corporate whitelist registry.
+                </p>
+                <p style="color: var(--text-dim); font-size: 11px;">
+                    SHA-256 Checksum: <span style="color: #fff;">e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855</span>
+                </p>
+            </div>
+
+            <div style="margin-bottom: 15px;">
+                <h4 style="color: var(--text-glow); border-bottom: 1px dashed var(--border-dim); padding-bottom: 4px; margin-bottom: 8px;">MITRE ATT&CK® MAPPINGS:</h4>
+                <p style="color: var(--text-dim);">None Observed. Zero indicators of Compromise (IoC) match current signature databases.</p>
+            </div>
+
+            <div style="margin-bottom: 15px;">
+                <h4 style="color: var(--text-glow); border-bottom: 1px dashed var(--border-dim); padding-bottom: 4px; margin-bottom: 8px;">DETECTED VECTOR ANOMALY FLAGS:</h4>
+                <ul style="list-style: none; padding-left: 10px; color: var(--text-dim);">
+                    <li>&gt; Domain authenticated against corporate trusted domain gatekeeper.</li>
+                    <li>&gt; SSL/TLS Certificate validated. Issuer: DigiCert Global Root G2.</li>
+                    <li>&gt; Zero Punycode / Homograph attack sequences detected in UTF-8 sequence.</li>
+                </ul>
+            </div>
+
+            <div>
+                <h4 style="color: var(--text-glow); border-bottom: 1px dashed var(--border-dim); padding-bottom: 4px; margin-bottom: 8px;">ACTIONABLE SOC PLAYBOOK MITIGATION STEPS:</h4>
+                <ul style="list-style: none; padding-left: 10px; color: var(--accent-green);">
+                    <li>✔ Allow uninterrupted network transit.</li>
+                    <li>✔ Log pass-through event in SIEM audit database.</li>
+                    <li>✔ Update local DNS cache TTL entry for optimized routing.</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- RIGHT PANEL: VECTOR METRICS & ENGINE METRICS -->
+        <div class="card">
+            <div class="card-header">
+                <span>SYSTEM HEURISTICS TELEMETRY</span>
+            </div>
+            
+            <table style="margin-bottom: 15px;">
+                <tr>
+                    <td>DNS RESOLVER IP</td>
+                    <td style="color: var(--text-glow);">1.1.1.1 / 8.8.8.8</td>
+                </tr>
+                <tr>
+                    <td>HTTP RESPONSE CODE</td>
+                    <td style="color: var(--accent-green);">200 OK</td>
+                </tr>
+                <tr>
+                    <td>REDIRECT COUNT</td>
+                    <td style="color: var(--text-glow);">0 Hops</td>
+                </tr>
+                <tr>
+                    <td>DOMAIN AGE</td>
+                    <td style="color: var(--text-glow);">6,842 Days</td>
+                </tr>
+                <tr>
+                    <td>ASN / REGISTRAR</td>
+                    <td style="color: var(--text-glow);">AS13335 (Cloudflare)</td>
+                </tr>
+                <tr>
+                    <td>MX RECORD MATCH</td>
+                    <td style="color: var(--accent-green);">PASSED (SPF/DKIM Valid)</td>
+                </tr>
+                <tr>
+                    <td>HEURISTIC SCORE</td>
+                    <td style="color: var(--accent-green);">0.001 (Negligible Risk)</td>
+                </tr>
+            </table>
+
+            <div style="border: 1px solid var(--border-dim); padding: 10px; background: #000;">
+                <div style="font-size: 10px; color: var(--text-dim); margin-bottom: 5px;">MODEL CONFIDENCE BREAKDOWN</div>
+                <div style="background: var(--border-dim); height: 8px; width: 100%; margin-bottom: 5px;">
+                    <div style="background: var(--border-red); height: 100%; width: 2%;"></div>
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 9px; color: var(--text-muted);">
+                    <span>MALICIOUS: 0.2%</span>
+                    <span>BENIGN: 99.8%</span>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- METRICS GAUGE BAR -->
+    <div class="metrics-bar">
+        <div class="metric-box">
+            <div class="metric-label">ENTROPY</div>
+            <div class="metric-value">3.08 Bits/Char</div>
+        </div>
+        <div class="metric-box">
+            <div class="metric-label">TYPOSQUAT</div>
+            <div class="metric-value" style="color: var(--accent-green);">0 (Authorized)</div>
+        </div>
+        <div class="metric-box">
+            <div class="metric-label">SUBDOMAINS</div>
+            <div class="metric-value">1 Levels</div>
+        </div>
+        <div class="metric-box">
+            <div class="metric-label">DIGITS RATIO</div>
+            <div class="metric-value">0.0%</div>
+        </div>
+        <div class="metric-box">
+            <div class="metric-label">DGA RISK</div>
+            <div class="metric-value" style="color: var(--accent-green);">0%</div>
+        </div>
+        <div class="metric-box">
+            <div class="metric-label">UNICODE/PUNY</div>
+            <div class="metric-value">Clean ASCII</div>
+        </div>
+    </div>
+
+    <!-- BOTTOM PANEL: ASSISTANT AUDIT ELEMENTARY STREAM (HISTORICAL AUDIT STREAM) -->
+    <div class="card">
+        <div class="card-header">
+            <span>[=] ASSISTANT AUDIT ELEMENTARY STREAM // HISTORICAL SCAN TELEMETRY</span>
+            <span>CLICK LOG ENTRY TO OPEN IN-DEPTH FORENSIC PAGE</span>
+        </div>
+        
+        <table>
+            <thead>
+                <tr>
+                    <th>SCAN ID</th>
+                    <th>TIMESTAMP (UTC)</th>
+                    <th>TARGET DOMAIN / URL VECTOR</th>
+                    <th>THREAT STATUS</th>
+                    <th>RISK RATING</th>
+                    <th>MITRE TACTIC</th>
+                    <th>ACTION TAKEN</th>
+                    <th>FULL DRILLDOWN</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>#AUD-99021</td>
+                    <td>2026-09-25 11:14:02</td>
+                    <td>[https://www.presidencyuniversity.in](https://www.presidencyuniversity.in)</td>
+                    <td><span class="status-flag flag-green">CLEAN</span></td>
+                    <td>0.00%</td>
+                    <td>N/A (Whitelisted)</td>
+                    <td>PASS_THROUGH</td>
+                    <td><a href="audit_log_details.html?id=99021" class="link-detail">[INSPECT LOG]</a></td>
+                </tr>
+                <tr>
+                    <td>#AUD-99020</td>
+                    <td>2026-09-25 11:08:44</td>
+                    <td>[http://login-presidencyuniveristy-auth.ru/login.php](http://login-presidencyuniveristy-auth.ru/login.php)</td>
+                    <td><span class="status-flag flag-red">MALICIOUS</span></td>
+                    <td>98.4%</td>
+                    <td>T1566.002 (Phishing Link)</td>
+                    <td>AUTO_BLOCKED</td>
+                    <td><a href="audit_log_details.html?id=99020" class="link-detail">[INSPECT LOG]</a></td>
+                </tr>
+                <tr>
+                    <td>#AUD-99019</td>
+                    <td>2026-09-25 10:55:12</td>
+                    <td>[https://secure-update-account-verification-portal.com](https://secure-update-account-verification-portal.com)</td>
+                    <td><span class="status-flag flag-red">CRITICAL</span></td>
+                    <td>99.1%</td>
+                    <td>T1056.001 (Input Capture)</td>
+                    <td>BLACK-HOLED</td>
+                    <td><a href="audit_log_details.html?id=99019" class="link-detail">[INSPECT LOG]</a></td>
+                </tr>
+                <tr>
+                    <td>#AUD-99018</td>
+                    <td>2026-09-25 10:42:01</td>
+                    <td>[http://192.168.1.105:8080/payload.exe](http://192.168.1.105:8080/payload.exe)</td>
+                    <td><span class="status-flag flag-red">EXPLOIT</span></td>
+                    <td>95.7%</td>
+                    <td>T1204.002 (Malicious File)</td>
+                    <td>SANDBOX_ISOLATED</td>
+                    <td><a href="audit_log_details.html?id=99018" class="link-detail">[INSPECT LOG]</a></td>
+                </tr>
+                <tr>
+                    <td>#AUD-99017</td>
+                    <td>2026-09-25 10:12:30</td>
+                    <td>[https://github.com/phishshield/telemetry](https://github.com/phishshield/telemetry)</td>
+                    <td><span class="status-flag flag-green">CLEAN</span></td>
+                    <td>0.01%</td>
+                    <td>N/A</td>
+                    <td>PASS_THROUGH</td>
+                    <td><a href="audit_log_details.html?id=99017" class="link-detail">[INSPECT LOG]</a></td>
+                </tr>
+                <tr>
+                    <td>#AUD-99016</td>
+                    <td>2026-09-25 09:30:11</td>
+                    <td>[http://paypaI-security-update-center.org](http://paypaI-security-update-center.org)</td>
+                    <td><span class="status-flag flag-amber">SUSPICIOUS</span></td>
+                    <td>74.2%</td>
+                    <td>T1036.005 (Impersonation)</td>
+                    <td>QUARANTINED</td>
+                    <td><a href="audit_log_details.html?id=99016" class="link-detail">[INSPECT LOG]</a></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- TERMINAL/CONSOLE OUTPUT STRIP -->
+    <div class="card" style="margin-top: 15px; font-size: 10px; color: var(--text-dim); background: #000;">
+        <span style="color: var(--text-glow); font-weight: bold;">[SYSTEM CONSOLE LOG Stream]</span> 
+        SYSCALL 0x4F92: SIEM Audit engine synchronized. Listening for incoming telemetry payloads on port 8000...
+    </div>
+
+    <footer>
+        <span>PHISHSHIELD SIEM SECURITY FRAMEWORK v4.0.9</span>
+        <span>CONFIDENTIAL // AUTHORIZED RED TEAM & SOC OPERATIONS ONLY</span>
+        <span>LATENCY: 0.037ms</span>
+    </footer>
+
+</body>
+</html>
