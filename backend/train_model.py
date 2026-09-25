@@ -4,14 +4,14 @@ import numpy as np
 import pandas as pd
 from Levenshtein import distance as lev_distance
 from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier, VotingClassifier
 from sklearn.preprocessing import StandardScaler
 from sklearn.base import BaseEstimator, TransformerMixin
 import joblib
 
 class LexicalFeatureExtractor(BaseEstimator, TransformerMixin):
     def __init__(self):
-        self.target_brands = ["paypal", "google", "microsoft", "apple", "amazon", "bankofamerica", "netflix", "presidencyuniversity"]
+        self.target_brands = ["paypal", "google", "microsoft", "apple", "amazon", "bankofamerica", "netflix", "presidencyuniversity", "facebook", "instagram", "linkedin"]
 
     def calculate_entropy(self, text: str) -> float:
         if not text:
@@ -46,13 +46,16 @@ class LexicalFeatureExtractor(BaseEstimator, TransformerMixin):
             domain = url_str.split("://")[-1].split("/")[0]
             brand_dist = self.min_brand_distance(domain)
 
+            suspicious_tlds = [".xyz", ".top", ".tk", ".site", ".online", ".info", ".club"]
+            has_suspicious_tld = 1 if any(url_str.endswith(tld) or tld + "/" in url_str for tld in suspicious_tlds) else 0
+
             features.append([
-                url_length, digit_ratio, special_ratio, num_subdomains, has_ip, entropy, brand_dist
+                url_length, digit_ratio, special_ratio, num_subdomains, has_ip, entropy, brand_dist, has_suspicious_tld
             ])
         return np.array(features)
 
 def train_and_export():
-    print("[*] Generating Comprehensive Training Dataset...")
+    print("[*] Training Tier-2 Voting Ensemble Model...")
     data = {
         "url": [
             "https://www.google.com", "https://www.github.com", "https://www.wikipedia.org",
@@ -81,24 +84,30 @@ def train_and_export():
     X = df["url"]
     y = df["label"]
 
-    vectorizer = TfidfVectorizer(analyzer="char", ngram_range=(3, 5), max_features=1000)
+    char_vec = TfidfVectorizer(analyzer="char", ngram_range=(3, 5), max_features=800)
+    word_vec = TfidfVectorizer(analyzer="word", ngram_range=(1, 2), max_features=400)
     lexical_extractor = LexicalFeatureExtractor()
 
-    X_tfidf = vectorizer.fit_transform(X).toarray()
+    X_char = char_vec.fit_transform(X).toarray()
+    X_word = word_vec.fit_transform(X).toarray()
     X_lexical = lexical_extractor.transform(X)
     
     scaler = StandardScaler()
     X_lexical_scaled = scaler.fit_transform(X_lexical)
-    X_combined = np.hstack((X_tfidf, X_lexical_scaled))
+    X_combined = np.hstack((X_char, X_word, X_lexical_scaled))
 
-    clf = RandomForestClassifier(n_estimators=100, random_state=42)
-    clf.fit(X_combined, y)
+    rf = RandomForestClassifier(n_estimators=100, random_state=42)
+    gb = GradientBoostingClassifier(n_estimators=100, random_state=42)
+    
+    ensemble = VotingClassifier(estimators=[("rf", rf), ("gb", gb)], voting="soft")
+    ensemble.fit(X_combined, y)
 
     os.makedirs("app", exist_ok=True)
-    joblib.dump(vectorizer, "app/vectorizer.pkl")
+    joblib.dump(char_vec, "app/char_vec.pkl")
+    joblib.dump(word_vec, "app/word_vec.pkl")
     joblib.dump(scaler, "app/scaler.pkl")
-    joblib.dump(clf, "app/model.pkl")
-    print("[+] Advanced Model Artifacts Exported Successfully!")
+    joblib.dump(ensemble, "app/model.pkl")
+    print("[+] Advanced Ensemble Artifacts Exported Successfully!")
 
 if __name__ == "__main__":
     train_and_export()

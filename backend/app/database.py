@@ -35,4 +35,15 @@ class AuditLogger:
             conn.commit()
             conn.close()
         except Exception as e:
-            print(f"[-] Database Logging Error: {e}")
+            print(f"[-] Database Error: {e}")
+
+    def get_recent_logs(self, limit=15):
+        try:
+            conn = sqlite3.connect(self.db_path)
+            cursor = conn.cursor()
+            cursor.execute("SELECT id, url, verdict, source, risk_score, latency_ms, timestamp FROM scan_logs ORDER BY id DESC LIMIT ?", (limit,))
+            rows = cursor.fetchall()
+            conn.close()
+            return rows
+        except Exception:
+            return []

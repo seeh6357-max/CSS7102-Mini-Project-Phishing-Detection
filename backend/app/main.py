@@ -1,5 +1,7 @@
 import time
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import HTMLResponse
+from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 from app.redis_cache import RedisCacheManager
 from app.nlp_engine import AdvancedNLPEngine
@@ -8,9 +10,11 @@ from app.database import AuditLogger
 
 app = FastAPI(
     title="Real-Time Phishing Detection Engine",
-    version="2.0",
-    description="Multi-Tier Threat Intelligence Framework"
+    version="3.0",
+    description="Multi-Tier Glassmorphic Threat Intelligence Framework"
 )
+
+templates = Jinja2Templates(directory="app/templates")
 
 cache = RedisCacheManager()
 nlp = AdvancedNLPEngine()
@@ -20,14 +24,25 @@ logger = AuditLogger()
 class URLRequest(BaseModel):
     url: str
 
-@app.get("/")
-def health_check():
-    return {
-        "status": "ONLINE",
-        "system": "Hybrid Phishing Detection Framework",
-        "version": "2.0",
-        "tiers": ["Tier-1 Redis Cache", "Tier-2 NLP Engine", "Tier-3 Enterprise Whitelist"]
-    }
+@app.get("/", response_class=HTMLResponse)
+def serve_ui(request: Request):
+    return templates.TemplateResponse("index.html", {"request": request})
+
+@app.get("/api/v1/logs")
+def get_audit_logs():
+    raw_logs = logger.get_recent_logs(10)
+    formatted = []
+    for r in raw_logs:
+        formatted.append({
+            "id": r[0],
+            "url": r[1],
+            "verdict": r[2],
+            "source": r[3],
+            "risk_score": r[4],
+            "latency": f"{r[5]} ms",
+            "timestamp": r[6]
+        })
+    return formatted
 
 @app.post("/api/v1/check-url")
 def analyze_url(payload: URLRequest):

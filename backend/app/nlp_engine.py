@@ -6,17 +6,19 @@ from Levenshtein import distance as lev_distance
 
 class AdvancedNLPEngine:
     def __init__(self):
-        vec_path = "app/vectorizer.pkl"
+        char_path = "app/char_vec.pkl"
+        word_path = "app/word_vec.pkl"
         scaler_path = "app/scaler.pkl"
         model_path = "app/model.pkl"
-        self.target_brands = ["paypal", "google", "microsoft", "apple", "amazon", "bankofamerica", "netflix", "presidencyuniversity"]
+        self.target_brands = ["paypal", "google", "microsoft", "apple", "amazon", "bankofamerica", "netflix", "presidencyuniversity", "facebook", "instagram", "linkedin"]
         
-        if os.path.exists(vec_path) and os.path.exists(scaler_path) and os.path.exists(model_path):
-            self.vectorizer = joblib.load(vec_path)
+        if os.path.exists(char_path) and os.path.exists(word_path) and os.path.exists(scaler_path) and os.path.exists(model_path):
+            self.char_vec = joblib.load(char_path)
+            self.word_vec = joblib.load(word_path)
             self.scaler = joblib.load(scaler_path)
             self.model = joblib.load(model_path)
             self.ready = True
-            print("[+] Tier-2 Advanced NLP Engine Online.")
+            print("[+] Tier-2 Advanced Voting Ensemble NLP Engine Online.")
         else:
             self.ready = False
             print("[-] NLP Engine Error: Missing Model Artifacts.")
@@ -44,24 +46,28 @@ class AdvancedNLPEngine:
         distances = [lev_distance(domain, brand) for brand in self.target_brands]
         brand_dist = min(distances) if distances else 999
 
+        suspicious_tlds = [".xyz", ".top", ".tk", ".site", ".online", ".info", ".club"]
+        has_suspicious_tld = 1 if any(url_str.endswith(tld) or tld + "/" in url_str for tld in suspicious_tlds) else 0
+
         return np.array([[
-            url_length, digit_ratio, special_ratio, num_subdomains, has_ip, entropy, brand_dist
+            url_length, digit_ratio, special_ratio, num_subdomains, has_ip, entropy, brand_dist, has_suspicious_tld
         ]])
 
     def predict(self, url: str):
         if not self.ready:
             return "UNKNOWN", 0.0
 
-        tfidf_feat = self.vectorizer.transform([url]).toarray()
+        char_feat = self.char_vec.transform([url]).toarray()
+        word_feat = self.word_vec.transform([url]).toarray()
         lex_feat = self._extract_lexical_features(url)
         lex_scaled = self.scaler.transform(lex_feat)
 
-        combined_features = np.hstack((tfidf_feat, lex_scaled))
+        combined_features = np.hstack((char_feat, word_feat, lex_scaled))
         prob = self.model.predict_proba(combined_features)[0][1]
         
-        if prob >= 0.80:
+        if prob >= 0.75:
             verdict = "MALICIOUS"
-        elif prob >= 0.50:
+        elif prob >= 0.45:
             verdict = "SUSPICIOUS"
         else:
             verdict = "SAFE"
