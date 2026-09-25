@@ -3,92 +3,118 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PhishShield - Deep Forensic Audit Explorer</title>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <title>PHISHSHIELD // DEEP FORENSIC INSPECTOR</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <style>
-        :root { --bg-dark: #070913; --glass-card: rgba(15, 23, 42, 0.65); --glass-border: rgba(255, 255, 255, 0.12); --neon-cyan: #38bdf8; --neon-purple: #a855f7; --neon-pink: #ec4899; --neon-green: #10b981; --neon-red: #f43f5e; --neon-amber: #f59e0b; --text-main: #f8fafc; --text-muted: #94a3b8; }
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: "Plus Jakarta Sans", sans-serif; }
-        body { background-color: var(--bg-dark); color: var(--text-main); min-height: 100vh; padding: 28px; }
-        .container { max-width: 1440px; margin: 0 auto; display: flex; flex-direction: column; gap: 28px; }
-        header { background: var(--glass-card); backdrop-filter: blur(20px); border: 1px solid var(--glass-border); border-radius: 20px; padding: 18px 32px; display: flex; justify-content: space-between; align-items: center; }
-        .brand h1 { font-size: 22px; font-weight: 800; background: linear-gradient(to right, #38bdf8, #c084fc); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        .nav-links a { color: var(--text-muted); text-decoration: none; font-weight: 600; font-size: 14px; padding: 8px 16px; border-radius: 10px; margin-left: 8px; }
-        .nav-links a.active { color: var(--neon-cyan); background: rgba(56, 189, 248, 0.15); border: 1px solid var(--neon-cyan); }
-        .layout-grid { display: grid; grid-template-columns: 1fr 2.2fr; gap: 24px; }
-        .card { background: var(--glass-card); border: 1px solid var(--glass-border); border-radius: 24px; padding: 28px; }
-        
-        .log-scroll-area { max-height: 650px; overflow-y: auto; padding-right: 8px; }
-        .log-scroll-area::-webkit-scrollbar { width: 6px; }
-        .log-scroll-area::-webkit-scrollbar-thumb { background: var(--glass-border); border-radius: 10px; }
+        :root { 
+            --bg-deep: #020204; 
+            --bg-card: #080a10; 
+            --border-crimson: #ff1e38; 
+            --border-dim: rgba(255, 30, 56, 0.35); 
+            --neon-red: #ff1e38; 
+            --neon-amber: #ffb703; 
+            --neon-green: #06d6a0; 
+            --text-main: #f8fafc; 
+            --text-muted: #94a3b8; 
+            --text-dim: #475569; 
+        }
 
-        .log-item { padding: 14px; border-bottom: 1px solid rgba(255,255,255,0.05); cursor: pointer; border-radius: 10px; transition: all 0.2s; margin-bottom: 6px; }
-        .log-item:hover, .log-item.active-log { background: rgba(56, 189, 248, 0.15); border: 1px solid var(--neon-cyan); }
-        
-        .summary-card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin: 20px 0; }
-        .info-card { background: rgba(7, 9, 19, 0.7); border: 1px solid var(--glass-border); border-radius: 14px; padding: 16px; }
-        .info-card label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; font-weight: 700; display: block; margin-bottom: 4px; }
-        .info-card span { font-size: 15px; font-weight: 700; font-family: 'JetBrains Mono', monospace; }
+        @keyframes crimsonPulse {
+            0% { border-color: rgba(255, 30, 56, 0.3); box-shadow: 0 0 8px rgba(255, 30, 56, 0.15); }
+            50% { border-color: rgba(255, 30, 56, 0.95); box-shadow: 0 0 22px rgba(255, 30, 56, 0.5); }
+            100% { border-color: rgba(255, 30, 56, 0.3); box-shadow: 0 0 8px rgba(255, 30, 56, 0.15); }
+        }
 
-        .ai-box { background: linear-gradient(135deg, rgba(168, 85, 247, 0.15), rgba(56, 189, 248, 0.15)); border: 1px solid var(--neon-purple); border-radius: 16px; padding: 20px; margin-top: 20px; }
-        .btn-ai { background: linear-gradient(135deg, var(--neon-purple), var(--neon-pink)); color: #fff; border: none; padding: 10px 20px; border-radius: 10px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 8px; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
+        body { background-color: var(--bg-deep); color: var(--text-main); min-height: 100vh; padding: 24px; }
+        .wrapper { max-width: 1600px; margin: 0 auto; display: flex; flex-direction: column; gap: 24px; }
+
+        header { 
+            background: var(--bg-card); 
+            border: 2px solid var(--border-crimson); 
+            animation: crimsonPulse 3s infinite ease-in-out; 
+            border-radius: 16px; 
+            padding: 16px 32px; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+        }
+        .brand-title { font-family: 'Orbitron', sans-serif; font-size: 22px; font-weight: 900; color: #fff; letter-spacing: 2px; }
+        .brand-title span { color: var(--neon-red); }
         
-        pre { background: rgba(7, 9, 19, 0.9); padding: 18px; border-radius: 14px; border: 1px solid var(--glass-border); font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--neon-cyan); overflow-x: auto; white-space: pre-wrap; margin-top: 16px; }
+        .nav-menu { display: flex; gap: 12px; }
+        .nav-menu a { font-family: 'Share Tech Mono', monospace; color: var(--text-muted); text-decoration: none; font-size: 14px; padding: 8px 18px; border-radius: 8px; border: 1px solid var(--text-dim); text-transform: uppercase; }
+        .nav-menu a.active { color: #fff; background: rgba(255, 30, 56, 0.2); border-color: var(--neon-red); }
+
+        .split-layout { display: grid; grid-template-columns: 1.1fr 2fr; gap: 24px; }
+        .card { 
+            background: var(--bg-card); 
+            border: 1px solid var(--border-dim); 
+            animation: crimsonPulse 4s infinite ease-in-out; 
+            border-radius: 20px; 
+            padding: 28px; 
+        }
+
+        .log-list-area { max-height: 650px; overflow-y: auto; padding-right: 6px; }
+        .log-card-item { padding: 14px; border: 1px solid var(--border-dim); border-radius: 10px; margin-bottom: 10px; cursor: pointer; transition: all 0.2s; background: #020204; }
+        .log-card-item:hover, .log-card-item.active { border-color: var(--neon-red); background: rgba(255, 30, 56, 0.12); box-shadow: 0 0 12px rgba(255, 30, 56, 0.3); }
+
+        .summary-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; margin: 16px 0; }
+        .sum-box { background: #020204; border: 1px solid var(--border-dim); border-radius: 10px; padding: 14px; }
+        .sum-box label { font-size: 10px; color: var(--text-dim); font-family: 'Share Tech Mono', monospace; text-transform: uppercase; display: block; margin-bottom: 4px; }
+        .sum-box span { font-size: 14px; font-weight: 700; font-family: 'Share Tech Mono', monospace; color: #fff; }
+
+        .ai-box { background: rgba(255, 183, 3, 0.05); border: 1px solid var(--neon-amber); border-radius: 14px; padding: 24px; margin-top: 16px; }
+        .btn-ai { background: var(--neon-amber); color: #020204; border: none; padding: 12px 24px; border-radius: 8px; font-weight: 800; cursor: pointer; font-family: 'Orbitron', sans-serif; font-size: 12px; letter-spacing: 0.5px; transition: all 0.2s; }
+        .btn-ai:hover { background: #ffca3a; box-shadow: 0 0 18px rgba(255, 183, 3, 0.5); }
+
+        .ai-content { font-size: 13px; color: var(--text-main); font-family: 'Inter', sans-serif; line-height: 1.6; }
+        .ai-content h3, .ai-content h4 { color: var(--neon-amber); font-family: 'Orbitron', sans-serif; margin-top: 14px; margin-bottom: 6px; }
+        .ai-content p { margin-bottom: 10px; }
+        .ai-content ul { margin-left: 18px; margin-bottom: 10px; }
+
+        pre { background: #020204; padding: 16px; border-radius: 10px; border: 1px solid var(--border-dim); font-family: 'Share Tech Mono', monospace; font-size: 12px; color: var(--neon-green); margin-top: 12px; overflow-x: auto; }
     </style>
 </head>
 <body>
-    <div class="container">
+    <div class="wrapper">
         <header>
-            <div class="brand" style="display: flex; align-items: center; gap: 14px;">
-                <i class="fa-solid fa-shield-halved" style="font-size: 24px; color: var(--neon-cyan);"></i>
-                <h1>PhishShield Forensic Explorer</h1>
-            </div>
-            <div class="nav-links">
-                <a href="/"><i class="fa-solid fa-chart-line"></i> Dashboard</a>
-                <a href="/audit_log_details.html" class="active"><i class="fa-solid fa-magnifying-glass-chart"></i> Forensic Explorer</a>
-                <a href="/mitre_matrix.html"><i class="fa-solid fa-cubes"></i> MITRE ATT&CK</a>
-            </div>
+            <div class="brand-title">PHISH<span>SHIELD</span> // FORENSIC EXPLORER</div>
+            <nav class="nav-menu">
+                <a href="/"><i class="fa-solid fa-terminal"></i> Console</a>
+                <a href="/audit_log_details.html" class="active"><i class="fa-solid fa-magnifying-glass-chart"></i> Forensics</a>
+                <a href="/mitre_matrix.html"><i class="fa-solid fa-cubes"></i> MITRE TTPs</a>
+            </nav>
         </header>
 
-        <div class="layout-grid">
+        <div class="split-layout">
             <div class="card">
-                <h3><i class="fa-solid fa-list" style="color: var(--neon-purple);"></i> Complete Audit History</h3>
-                <p style="font-size: 12px; color: var(--text-muted); margin: 8px 0 16px 0;">All recorded scans (from #1 to recent):</p>
-                <div class="log-scroll-area" id="logList">Loading full log history...</div>
+                <h3 style="font-family: 'Orbitron', sans-serif; font-size: 16px; color: #fff; margin-bottom: 14px;"><i class="fa-solid fa-list" style="color: var(--neon-red);"></i> Audit Log Stream</h3>
+                <div class="log-list-area" id="logList">Loading telemetry records...</div>
             </div>
 
             <div class="card">
                 <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <h3><i class="fa-solid fa-user-check" style="color: var(--neon-green);"></i> Common-Man Readable Summary</h3>
-                    <button class="btn-ai" onclick="generateGeminiSummary()"><i class="fa-solid fa-wand-magic-sparkles"></i> AI Summary with Gemini</button>
+                    <h3 style="font-family: 'Orbitron', sans-serif; font-size: 16px; color: #fff;"><i class="fa-solid fa-shield-halved" style="color: var(--neon-green);"></i> Deep Threat Forensic Breakdown</h3>
+                    <button class="btn-ai" onclick="generateAISummary()"><i class="fa-solid fa-wand-magic-sparkles"></i> AI CISO REPORT</button>
                 </div>
 
-                <div class="summary-card-grid">
-                    <div class="info-card">
-                        <label>Security Status</label>
-                        <span id="humanVerdict" style="color: var(--neon-green);">-</span>
-                    </div>
-                    <div class="info-card">
-                        <label>Target Domain</label>
-                        <span id="humanDomain" style="color: #fff;">Select Entry</span>
-                    </div>
-                    <div class="info-card">
-                        <label>Hosting Server IP</label>
-                        <span id="humanIP" style="color: var(--neon-cyan);">-</span>
-                    </div>
-                    <div class="info-card">
-                        <label>Hosting Provider / ASN</label>
-                        <span id="humanASN" style="color: var(--text-muted); font-size: 12px;">-</span>
-                    </div>
+                <div class="summary-grid">
+                    <div class="sum-box"><label>Security Verdict</label><span id="sumVerdict">-</span></div>
+                    <div class="sum-box"><label>Target Domain Vector</label><span id="sumURL" style="word-break: break-all;">-</span></div>
+                    <div class="sum-box"><label>Resolved Hosting IP</label><span id="sumIP" style="color: var(--neon-green);">-</span></div>
+                    <div class="sum-box"><label>ASN Network Owner</label><span id="sumASN" style="color: var(--neon-amber);">-</span></div>
                 </div>
 
-                <div class="ai-box" id="aiExplanationBox">
-                    <h4 style="color: var(--neon-cyan); font-size: 14px; margin-bottom: 6px;"><i class="fa-solid fa-robot"></i> Executive Cyber Threat Explanation</h4>
-                    <p id="aiExplanationText" style="font-size: 13px; color: var(--text-main); line-height: 1.5;">Click "AI Summary with Gemini" or select a log entry to generate a plain-English explanation for non-technical users.</p>
+                <div class="ai-box">
+                    <h4 style="font-family: 'Orbitron', sans-serif; font-size: 14px; color: var(--neon-amber); margin-bottom: 10px;"><i class="fa-solid fa-robot"></i> Executive Threat Analysis</h4>
+                    <div id="aiText" class="ai-content">Select an audit telemetry log entry and click 'AI CISO REPORT' for an in-depth threat breakdown.</div>
                 </div>
 
-                <h4 style="margin-top: 24px; font-size: 14px; color: var(--text-muted);"><i class="fa-solid fa-code"></i> Developer Raw Technical Payload</h4>
-                <pre id="jsonViewer">Select a log entry from the list on the left to view technical JSON forensics.</pre>
+                <h4 style="font-family: 'Orbitron', sans-serif; font-size: 13px; color: var(--text-muted); margin-top: 24px;"><i class="fa-solid fa-code"></i> Raw Telemetry JSON Payload</h4>
+                <pre id="jsonViewer">Select a log entry from the audit stream.</pre>
             </div>
         </div>
     </div>
@@ -96,91 +122,69 @@
     <script>
         const urlParams = new URLSearchParams(window.location.search);
         const activeId = urlParams.get('id');
-        let currentLogData = null;
+        let currentLog = null;
 
-        async function loadFullLogList() {
-            try {
-                // Fetch up to 100 historical logs so none are cut off
-                const res = await fetch('/api/v1/logs?limit=100');
-                const logs = await res.json();
-                const listElem = document.getElementById('logList');
-                listElem.innerHTML = '';
-
-                logs.forEach(log => {
-                    const item = document.createElement('div');
-                    item.className = 'log-item' + (activeId == log.id ? ' active-log' : '');
-                    item.id = `log-item-${log.id}`;
-                    item.onclick = () => selectLog(log.id);
-
-                    let color = 'var(--neon-green)';
-                    if (log.verdict === 'SUSPICIOUS') color = 'var(--neon-amber)';
-                    if (log.verdict === 'MALICIOUS') color = 'var(--neon-red)';
-
-                    item.innerHTML = `
-                        <div style="display: flex; justify-content: space-between; font-size: 13px;">
-                            <strong>#${log.id} - <span style="color: ${color}">${log.verdict}</span></strong>
-                            <span style="color: var(--text-muted); font-size: 11px;">${log.latency}</span>
-                        </div>
-                        <div style="font-family: 'JetBrains Mono'; font-size: 11px; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 4px;">${log.url}</div>
-                    `;
-                    listElem.appendChild(item);
-                });
-
-                if (activeId) { selectLog(activeId); }
-                else if (logs.length > 0) { selectLog(logs[0].id); }
-            } catch(e) { document.getElementById('logList').innerText = 'Error loading logs.'; }
+        async function loadLogs() {
+            const res = await fetch('/api/v1/logs?limit=100');
+            const logs = await res.json();
+            const list = document.getElementById('logList');
+            list.innerHTML = '';
+            logs.forEach(l => {
+                const div = document.createElement('div');
+                div.className = 'log-card-item' + (activeId == l.id ? ' active' : '');
+                div.id = `log-${l.id}`;
+                div.onclick = () => selectLog(l.id);
+                div.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; font-size: 12px; font-family: 'Share Tech Mono';">
+                        <strong style="color: var(--neon-red);">#${l.id}</strong>
+                        <span style="color: var(--text-dim);">${l.latency}</span>
+                    </div>
+                    <div style="font-size: 11px; color: var(--text-muted); font-family: 'Share Tech Mono'; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 4px;">${l.url}</div>
+                `;
+                list.appendChild(div);
+            });
+            if(activeId) selectLog(activeId);
+            else if(logs.length) selectLog(logs[0].id);
         }
 
         async function selectLog(id) {
-            document.querySelectorAll('.log-item').forEach(el => el.classList.remove('active-log'));
-            const selectedElem = document.getElementById(`log-item-${id}`);
-            if(selectedElem) selectedElem.classList.add('active-log');
+            document.querySelectorAll('.log-card-item').forEach(el => el.classList.remove('active'));
+            const elem = document.getElementById(`log-${id}`);
+            if(elem) elem.classList.add('active');
 
+            const res = await fetch(`/api/v1/logs/${id}`);
+            currentLog = await res.json();
+            
+            document.getElementById('sumVerdict').innerText = currentLog.verdict;
+            document.getElementById('sumURL').innerText = currentLog.url;
+            document.getElementById('sumIP').innerText = currentLog.deep_forensics.resolved_ip;
+            document.getElementById('sumASN').innerText = currentLog.deep_forensics.asn_owner;
+            document.getElementById('jsonViewer').innerText = JSON.stringify(currentLog, null, 2);
+            document.getElementById('aiText').innerHTML = "Click <strong>'AI CISO REPORT'</strong> above to trigger live generative AI analysis.";
+        }
+
+        async function generateAISummary() {
+            if(!currentLog) return;
+            const container = document.getElementById('aiText');
+            container.innerHTML = '<i class="fa-solid fa-spinner fa-spin" style="color: var(--neon-amber);"></i> Compiling Executive Threat Analysis...';
             try {
-                const res = await fetch(`/api/v1/logs/${id}`);
-                if (!res.ok) throw new Error();
-                currentLogData = await res.json();
-
-                // 1. Fill Human-Readable Summary Cards
-                const verdictElem = document.getElementById('humanVerdict');
-                verdictElem.innerText = currentLogData.verdict;
-                if (currentLogData.verdict === 'SAFE') verdictElem.style.color = 'var(--neon-green)';
-                else if (currentLogData.verdict === 'SUSPICIOUS') verdictElem.style.color = 'var(--neon-amber)';
-                else verdictElem.style.color = 'var(--neon-red)';
-
-                document.getElementById('humanDomain').innerText = currentLogData.url;
-                document.getElementById('humanIP').innerText = currentLogData.deep_forensics ? currentLogData.deep_forensics.resolved_ip : '104.21.23.100';
-                document.getElementById('humanASN').innerText = currentLogData.deep_forensics ? currentLogData.deep_forensics.asn_owner : 'AS13335 Cloudflare';
-
-                // 2. Default Plain-English Explanation
-                if (currentLogData.verdict === 'SAFE') {
-                    document.getElementById('aiExplanationText').innerText = "SAFE WEBSITE: This domain is verified and registered on authorized enterprise whitelists. You can visit this website safely.";
-                } else {
-                    document.getElementById('aiExplanationText').innerText = "SECURITY WARNING: This link exhibits suspicious patterns (like brand typosquatting, abnormal subdomains, or high character entropy). Do NOT enter passwords or personal details here.";
-                }
-
-                // 3. Raw Technical JSON Payload
-                document.getElementById('jsonViewer').innerText = JSON.stringify(currentLogData, null, 2);
+                const res = await fetch('/api/v1/gemini-explain', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        url: currentLog.url,
+                        verdict: currentLog.verdict,
+                        risk_score: currentLog.risk_score,
+                        source: currentLog.source
+                    })
+                });
+                const data = await res.json();
+                container.innerHTML = marked.parse(data.explanation);
             } catch(e) {
-                document.getElementById('jsonViewer').innerText = `Error retrieving Log ID #${id}`;
+                container.innerText = "Error connecting to AI Analysis Endpoint.";
             }
         }
-
-        function generateGeminiSummary() {
-            if(!currentLogData) return;
-            const textElem = document.getElementById('aiExplanationText');
-            textElem.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Gemini AI is analyzing payload telemetry and generating explanation...';
-
-            setTimeout(() => {
-                if(currentLogData.verdict === 'SAFE') {
-                    textElem.innerHTML = `<strong>Gemini AI Analysis:</strong> The link <code>${currentLogData.url}</code> was matched against trusted corporate registries. High-trust domain score with 0.0% risk index. No malicious activity detected.`;
-                } else {
-                    textElem.innerHTML = `<strong>Gemini AI Analysis:</strong> High-risk phishing detection for <code>${currentLogData.url}</code>! This site uses a deceptive domain name designed to mimic official services. Risk Index: <strong>${(currentLogData.risk_score * 100).toFixed(1)}%</strong>. Immediate perimeter block executed.`;
-                }
-            }, 800);
-        }
-
-        loadFullLogList();
+        loadLogs();
     </script>
 </body>
 </html>

@@ -3,144 +3,235 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PhishShield - MITRE ATT&CK Enterprise Matrix</title>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <title>PHISHSHIELD // MITRE ATT&CK MATRIX</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <style>
-        :root {
-            --bg-dark: #04060d;
-            --glass-card: rgba(13, 20, 36, 0.75);
-            --glass-border: rgba(56, 189, 248, 0.2);
-            --neon-cyan: #38bdf8;
-            --neon-purple: #c084fc;
-            --neon-pink: #f43f5e;
-            --neon-amber: #fbbf24;
-            --neon-green: #34d399;
-            --text-main: #f8fafc;
-            --text-muted: #94a3b8;
+        :root { 
+            --bg-deep: #020204; 
+            --bg-card: #080a10; 
+            --border-crimson: #ff1e38; 
+            --border-dim: rgba(255, 30, 56, 0.35); 
+            --neon-red: #ff1e38; 
+            --neon-amber: #ffb703; 
+            --neon-green: #06d6a0; 
+            --text-main: #f8fafc; 
+            --text-muted: #94a3b8; 
         }
 
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: "Plus Jakarta Sans", sans-serif; }
-        body { background: var(--bg-dark); color: var(--text-main); min-height: 100vh; padding: 28px; }
-        
-        .container { max-width: 1440px; margin: 0 auto; display: flex; flex-direction: column; gap: 28px; }
-        
-        header {
-            background: var(--glass-card); backdrop-filter: blur(20px);
-            border: 1px solid var(--glass-border); border-radius: 20px; padding: 18px 32px;
-            display: flex; justify-content: space-between; align-items: center;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-        }
-        
-        .brand h1 {
-            font-size: 22px; font-weight: 800;
-            background: linear-gradient(to right, #38bdf8, #c084fc, #f43f5e);
-            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        @keyframes crimsonPulse {
+            0% { border-color: rgba(255, 30, 56, 0.3); box-shadow: 0 0 8px rgba(255, 30, 56, 0.15); }
+            50% { border-color: rgba(255, 30, 56, 0.95); box-shadow: 0 0 22px rgba(255, 30, 56, 0.5); }
+            100% { border-color: rgba(255, 30, 56, 0.3); box-shadow: 0 0 8px rgba(255, 30, 56, 0.15); }
         }
 
-        .nav-links a { color: var(--text-muted); text-decoration: none; font-weight: 600; font-size: 14px; padding: 10px 20px; border-radius: 12px; transition: all 0.3s; margin-left: 8px; }
-        .nav-links a.active { color: var(--neon-cyan); background: rgba(56, 189, 248, 0.15); border: 1px solid var(--neon-cyan); }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
+        body { background-color: var(--bg-deep); color: var(--text-main); min-height: 100vh; padding: 24px; }
+        .wrapper { max-width: 1600px; margin: 0 auto; display: flex; flex-direction: column; gap: 24px; }
+
+        header { 
+            background: var(--bg-card); 
+            border: 2px solid var(--border-crimson); 
+            animation: crimsonPulse 3s infinite ease-in-out; 
+            border-radius: 16px; 
+            padding: 16px 32px; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+        }
+        .brand-title { font-family: 'Orbitron', sans-serif; font-size: 22px; font-weight: 900; color: #fff; letter-spacing: 2px; }
+        .brand-title span { color: var(--neon-red); }
+        
+        .nav-menu { display: flex; gap: 12px; }
+        .nav-menu a { font-family: 'Share Tech Mono', monospace; color: var(--text-muted); text-decoration: none; font-size: 14px; padding: 8px 18px; border-radius: 8px; border: 1px solid var(--border-dim); text-transform: uppercase; }
+        .nav-menu a.active { color: #fff; background: rgba(255, 30, 56, 0.2); border-color: var(--neon-red); }
+
+        .container-box { 
+            background: var(--bg-card); 
+            border: 1px solid var(--border-dim); 
+            animation: crimsonPulse 4s infinite ease-in-out; 
+            border-radius: 20px; 
+            padding: 32px; 
+        }
 
         .matrix-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; margin-top: 24px; }
-        
-        .tactic-card {
-            background: var(--glass-card); border: 1px solid var(--glass-border);
-            border-radius: 20px; padding: 24px; cursor: pointer; transition: all 0.3s ease;
-            position: relative; overflow: hidden;
+        .tactic-card { 
+            background: #020204; 
+            border: 1px solid var(--border-dim); 
+            border-radius: 16px; 
+            padding: 24px; 
+            cursor: pointer; 
+            transition: all 0.3s; 
         }
-        .tactic-card:hover {
-            transform: translateY(-5px); border-color: var(--neon-cyan);
-            box-shadow: 0 12px 30px rgba(56, 189, 248, 0.25);
+        .tactic-card:hover { 
+            border-color: var(--neon-red); 
+            transform: translateY(-4px); 
+            box-shadow: 0 0 25px rgba(255, 30, 56, 0.35); 
         }
-        .tactic-card h4 { color: var(--neon-cyan); font-size: 16px; font-weight: 700; margin-bottom: 8px; }
-        .tactic-badge { font-size: 10px; font-weight: 800; text-transform: uppercase; padding: 4px 10px; border-radius: 6px; background: rgba(192, 132, 252, 0.2); color: var(--neon-purple); border: 1px solid var(--neon-purple); display: inline-block; margin-bottom: 12px; }
+        .tactic-tag { font-family: 'Share Tech Mono', monospace; font-size: 10px; background: rgba(255, 183, 3, 0.15); color: var(--neon-amber); border: 1px solid var(--neon-amber); padding: 4px 10px; border-radius: 6px; display: inline-block; margin-bottom: 12px; text-transform: uppercase; }
 
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.85); backdrop-filter: blur(12px); justify-content: center; align-items: center; z-index: 1000; }
-        .modal-body { background: var(--glass-card); border: 1px solid var(--glass-border); border-radius: 24px; padding: 36px; max-width: 650px; width: 90%; }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(2,2,4,0.92); backdrop-filter: blur(12px); justify-content: center; align-items: center; z-index: 1000; }
+        .modal-body { background: var(--bg-card); border: 2px solid var(--border-crimson); animation: crimsonPulse 3s infinite ease-in-out; border-radius: 20px; padding: 36px; max-width: 800px; width: 90%; max-height: 85vh; overflow-y: auto; }
+        
+        .ai-modal-content { font-size: 13px; color: var(--text-main); font-family: 'Inter', sans-serif; line-height: 1.6; margin-top: 16px; }
+        .ai-modal-content h3, .ai-modal-content h4 { color: var(--neon-amber); font-family: 'Orbitron', sans-serif; margin-top: 14px; margin-bottom: 6px; }
     </style>
 </head>
 <body>
-    <div class="container">
+    <div class="wrapper">
         <header>
-            <div class="brand" style="display: flex; align-items: center; gap: 14px;">
-                <i class="fa-solid fa-shield-halved" style="font-size: 26px; color: var(--neon-cyan);"></i>
-                <h1>PhishShield MITRE ATT&CK Matrix</h1>
-            </div>
-            <div class="nav-links">
-                <a href="/"><i class="fa-solid fa-chart-line"></i> Dashboard</a>
-                <a href="/audit_log_details.html"><i class="fa-solid fa-magnifying-glass-chart"></i> Forensic Explorer</a>
-                <a href="/mitre_matrix.html" class="active"><i class="fa-solid fa-cubes"></i> MITRE ATT&CK</a>
-            </div>
+            <div class="brand-title">PHISH<span>SHIELD</span> // MITRE ATT&CK</div>
+            <nav class="nav-menu">
+                <a href="/"><i class="fa-solid fa-terminal"></i> Console</a>
+                <a href="/audit_log_details.html"><i class="fa-solid fa-magnifying-glass-chart"></i> Forensics</a>
+                <a href="/mitre_matrix.html" class="active"><i class="fa-solid fa-cubes"></i> MITRE TTPs</a>
+            </nav>
         </header>
 
-        <div style="background: var(--glass-card); border: 1px solid var(--glass-border); border-radius: 24px; padding: 32px;">
-            <h2 style="font-size: 22px; font-weight: 800;"><i class="fa-solid fa-cubes" style="color: var(--neon-pink);"></i> Adversary Tactics & Techniques Mapping</h2>
-            <p style="color: var(--text-muted); margin-top: 6px;">Click any technique card below to open the automated SOC Defense Playbook.</p>
+        <div class="container-box">
+            <h2 style="font-family: 'Orbitron', sans-serif; font-size: 22px; color: #fff;"><i class="fa-solid fa-cubes" style="color: var(--neon-red);"></i> Adversary TTP Matrix Mapping</h2>
+            <p style="color: var(--text-muted); font-size: 13px; font-family: 'Share Tech Mono', monospace; margin-top: 6px;">Click any technique card below to trigger a live AI Threat Analysis.</p>
 
             <div class="matrix-grid">
-                <div class="tactic-card" onclick="openPlaybook('T1566.002 — Spearphishing Link', 'Initial Access (TA0001)', 'Adversaries send emails containing malicious links designed to direct targets to deceptive credential harvest portals.', 'Tier-2 Ensemble NLP analyzes character n-grams and brand distance. Tier-1 Redis Intercept blocks repeat hashes.')">
-                    <span class="tactic-badge">Initial Access</span>
-                    <h4>T1566.002 — Spearphishing Link</h4>
-                    <p style="font-size: 13px; color: var(--text-muted);">Deceptive hyperlink delivery in emails or messaging payloads targeting enterprise credentials.</p>
+                <div class="tactic-card" onclick="inspectTechnique('T1566.002', 'Spearphishing Link', 'Initial Access [TA0001]', 'Adversaries send targeted emails containing deceptive URLs to harvest credentials.')">
+                    <span class="tactic-tag">Initial Access [TA0001]</span>
+                    <h4 style="font-family: 'Orbitron'; font-size: 15px; color: #fff; margin-bottom: 8px;">T1566.002 — Spearphishing Link</h4>
+                    <p style="font-size: 12px; color: var(--text-muted); font-family: 'Share Tech Mono';">Deceptive hyperlink delivery targeting enterprise authentication portals.</p>
                 </div>
 
-                <div class="tactic-card" onclick="openPlaybook('T1036.007 — IDN Homograph Attack', 'Defense Evasion (TA0005)', 'Spoofing domain names using lookalike internationalized domain character sets (Punycode xn--).', 'Tier-3 Whitelist Gatekeeper rejects non-ASCII and Punycode variants immediately.')">
-                    <span class="tactic-badge">Defense Evasion</span>
-                    <h4>T1036.007 — IDN Homograph Attack</h4>
-                    <p style="font-size: 13px; color: var(--text-muted);">Internationalized Domain Name spoofing using visually identical Cyrillic/Greek characters.</p>
+                <div class="tactic-card" onclick="inspectTechnique('T1036.007', 'IDN Homograph Attack', 'Defense Evasion [TA0005]', 'Spoofing domain names using lookalike internationalized character sets (Punycode xn--).')">
+                    <span class="tactic-tag">Defense Evasion [TA0005]</span>
+                    <h4 style="font-family: 'Orbitron'; font-size: 15px; color: #fff; margin-bottom: 8px;">T1036.007 — IDN Homograph</h4>
+                    <p style="font-size: 12px; color: var(--text-muted); font-family: 'Share Tech Mono';">Punycode domain spoofing using international character replacements.</p>
                 </div>
 
-                <div class="tactic-card" onclick="openPlaybook('T1583.001 — Typosquatting Domains', 'Resource Development (TA0042)', 'Registering domains visually similar to legitimate corporate endpoints (e.g., paypa1.com).', 'Lexical Feature Extractor measures Levenshtein Edit Distance against clean brand registries.')">
-                    <span class="tactic-badge">Resource Dev</span>
-                    <h4>T1583.001 — Typosquatting Domains</h4>
-                    <p style="font-size: 13px; color: var(--text-muted);">Targeting user typo errors by purchasing domain permutations of corporate brands.</p>
+                <div class="tactic-card" onclick="inspectTechnique('T1583.001', 'Domains Typosquatting', 'Resource Dev [TA0042]', 'Registering domains visually similar to legitimate corporate brands.')">
+                    <span class="tactic-tag">Resource Dev [TA0042]</span>
+                    <h4 style="font-family: 'Orbitron'; font-size: 15px; color: #fff; margin-bottom: 8px;">T1583.001 — Typosquatting</h4>
+                    <p style="font-size: 12px; color: var(--text-muted); font-family: 'Share Tech Mono';">Brand imitation domains exploiting human typographical errors.</p>
                 </div>
 
-                <div class="tactic-card" onclick="openPlaybook('T1071.001 — Web Protocols', 'Command & Control (TA0011)', 'Encapsulating phishing communications within legitimate HTTPS web infrastructure to bypass firewalls.', 'Shannon Entropy calculation detects abnormal randomized subdomains and DGA patterns.')">
-                    <span class="tactic-badge">Command & Control</span>
-                    <h4>T1071.001 — Web Protocols</h4>
-                    <p style="font-size: 13px; color: var(--text-muted);">Hiding malicious network transit within standard port 443 TLS encrypted payloads.</p>
+                <div class="tactic-card" onclick="inspectTechnique('T1539', 'Steal Web Session Cookie', 'Credential Access [TA0006]', 'Adversaries harvest session tokens via adversary-in-the-middle reverse proxies.')">
+                    <span class="tactic-tag">Credential Access [TA0006]</span>
+                    <h4 style="font-family: 'Orbitron'; font-size: 15px; color: #fff; margin-bottom: 8px;">T1539 — Steal Session Cookie</h4>
+                    <p style="font-size: 12px; color: var(--text-muted); font-family: 'Share Tech Mono';">Session hijacking via reverse-proxy credential harvesting kits.</p>
                 </div>
 
-                <div class="tactic-card" onclick="openPlaybook('T1110.001 — Credential Stuffing', 'Credential Access (TA0006)', 'Automated testing of stolen username/password pairs against authentication endpoints.', 'SQLite Audit Telemetry logs rapid scan bursts and flags high-frequency malicious origins.')">
-                    <span class="tactic-badge">Credential Access</span>
-                    <h4>T1110.001 — Credential Stuffing</h4>
-                    <p style="font-size: 13px; color: var(--text-muted);">Automated login attempts using compromised database credentials on spoofed portals.</p>
+                <div class="tactic-card" onclick="inspectTechnique('T1110', 'Brute Force / Password Spray', 'Credential Access [TA0006]', 'Automated login attempts using compromised baseline password lists.')">
+                    <span class="tactic-tag">Credential Access [TA0006]</span>
+                    <h4 style="font-family: 'Orbitron'; font-size: 15px; color: #fff; margin-bottom: 8px;">T1110 — Password Spraying</h4>
+                    <p style="font-size: 12px; color: var(--text-muted); font-family: 'Share Tech Mono';">Systematic automated authentication vector testing.</p>
                 </div>
 
-                <div class="tactic-card" onclick="openPlaybook('T1584.001 — Compromised Domains', 'Resource Development (TA0042)', 'Adversaries hijack legitimate, highly-trusted domain infrastructure to host phishing landing pages.', 'Multi-tier soft voting ensemble cross-evaluates brand alignment versus content structure.')">
-                    <span class="tactic-badge">Resource Dev</span>
-                    <h4>T1584.001 — Compromised Domains</h4>
-                    <p style="font-size: 13px; color: var(--text-muted);">Hijacking legitimate corporate web servers to bypass perimeter URL reputation filters.</p>
+                <div class="tactic-card" onclick="inspectTechnique('T1608.005', 'Link Redirection Service', 'Resource Dev [TA0042]', 'Adversaries utilize shorteners and open redirects to conceal final landing pages.')">
+                    <span class="tactic-tag">Resource Dev [TA0042]</span>
+                    <h4 style="font-family: 'Orbitron'; font-size: 15px; color: #fff; margin-bottom: 8px;">T1608.005 — Link Shortener Evasion</h4>
+                    <p style="font-size: 12px; color: var(--text-muted); font-family: 'Share Tech Mono';">Concealing malicious final destinations behind multi-hop URL chains.</p>
+                </div>
+
+                <div class="tactic-card" onclick="inspectTechnique('T1584.001', 'Compromised Domain Infrastructure', 'Resource Dev [TA0042]', 'Adversaries take over legitimate aged domains with high domain authority.')">
+                    <span class="tactic-tag">Resource Dev [TA0042]</span>
+                    <h4 style="font-family: 'Orbitron'; font-size: 15px; color: #fff; margin-bottom: 8px;">T1584.001 — Domain Hijacking</h4>
+                    <p style="font-size: 12px; color: var(--text-muted); font-family: 'Share Tech Mono';">Repurposing expired or compromised high-reputation domain names.</p>
+                </div>
+
+                <div class="tactic-card" onclick="inspectTechnique('T1071.001', 'Web Protocols C2 Channel', 'Command & Control [TA0011]', 'Infiltrating data via standard HTTP/HTTPS channels to blend into normal enterprise traffic.')">
+                    <span class="tactic-tag">Command & Control [TA0011]</span>
+                    <h4 style="font-family: 'Orbitron'; font-size: 15px; color: #fff; margin-bottom: 8px;">T1071.001 — Web Application C2</h4>
+                    <p style="font-size: 12px; color: var(--text-muted); font-family: 'Share Tech Mono';">Exfiltrating telemetry via encrypted HTTPS REST request payloads.</p>
+                </div>
+
+                <div class="tactic-card" onclick="inspectTechnique('T1204.001', 'User Execution: Malicious Link', 'Execution [TA0002]', 'Relying on target users clicking deceptive links within social engineering emails.')">
+                    <span class="tactic-tag">Execution [TA0002]</span>
+                    <h4 style="font-family: 'Orbitron'; font-size: 15px; color: #fff; margin-bottom: 8px;">T1204.001 — Malicious Link Execution</h4>
+                    <p style="font-size: 12px; color: var(--text-muted); font-family: 'Share Tech Mono';">Exploiting human trust vectors through visual trickery.</p>
+                </div>
+
+                <div class="tactic-card" onclick="inspectTechnique('T1027', 'Obfuscated / Encrypted Files', 'Defense Evasion [TA0005]', 'Encoding malicious payload scripts in base64 or high-entropy javascript.')">
+                    <span class="tactic-tag">Defense Evasion [TA0005]</span>
+                    <h4 style="font-family: 'Orbitron'; font-size: 15px; color: #fff; margin-bottom: 8px;">T1027 — Payload Obfuscation</h4>
+                    <p style="font-size: 12px; color: var(--text-muted); font-family: 'Share Tech Mono';">Bypassing basic signature filters using dynamic character encoding.</p>
+                </div>
+
+                <div class="tactic-card" onclick="inspectTechnique('T1589.002', 'Gather Victim Email Addresses', 'Reconnaissance [TA0043]', 'Scraping public employee registries to formulate targeted spearphishing campaigns.')">
+                    <span class="tactic-tag">Reconnaissance [TA0043]</span>
+                    <h4 style="font-family: 'Orbitron'; font-size: 15px; color: #fff; margin-bottom: 8px;">T1589.002 — OSINT Reconnaissance</h4>
+                    <p style="font-size: 12px; color: var(--text-muted); font-family: 'Share Tech Mono';">Harvesting corporate email lists via LinkedIn and corporate sites.</p>
+                </div>
+
+                <div class="tactic-card" onclick="inspectTechnique('T1566.001', 'Spearphishing Attachment', 'Initial Access [TA0001]', 'Delivering malicious PDF or Office documents with embedded macros.')">
+                    <span class="tactic-tag">Initial Access [TA0001]</span>
+                    <h4 style="font-family: 'Orbitron'; font-size: 15px; color: #fff; margin-bottom: 8px;">T1566.001 — Phishing Attachment</h4>
+                    <p style="font-size: 12px; color: var(--text-muted); font-family: 'Share Tech Mono';">Macro-enabled weaponized documents bypass email gatekeepers.</p>
+                </div>
+
+                <div class="tactic-card" onclick="inspectTechnique('T1190', 'Exploit Public Application', 'Initial Access [TA0001]', 'Leveraging zero-day web vulnerability vectors on unpatched perimeter edge servers.')">
+                    <span class="tactic-tag">Initial Access [TA0001]</span>
+                    <h4 style="font-family: 'Orbitron'; font-size: 15px; color: #fff; margin-bottom: 8px;">T1190 — Edge Exploit Injection</h4>
+                    <p style="font-size: 12px; color: var(--text-muted); font-family: 'Share Tech Mono';">Exploiting edge framework vulnerabilities for remote code execution.</p>
+                </div>
+
+                <div class="tactic-card" onclick="inspectTechnique('T1556', 'Modify Authentication Process', 'Persistence [TA0003]', 'Adversaries tamper with single sign-on agents to bypass Multi-Factor Authentication.')">
+                    <span class="tactic-tag">Persistence [TA0003]</span>
+                    <h4 style="font-family: 'Orbitron'; font-size: 15px; color: #fff; margin-bottom: 8px;">T1556 — MFA Bypassing Agent</h4>
+                    <p style="font-size: 12px; color: var(--text-muted); font-family: 'Share Tech Mono';">Interception of real-time push notifications and TOTP tokens.</p>
+                </div>
+
+                <div class="tactic-card" onclick="inspectTechnique('T1059.007', 'JavaScript Payload Execution', 'Execution [TA0002]', 'Running malicious inline scripts in victim browsers to extract cookies.')">
+                    <span class="tactic-tag">Execution [TA0002]</span>
+                    <h4 style="font-family: 'Orbitron'; font-size: 15px; color: #fff; margin-bottom: 8px;">T1059.007 — Inline Script Injection</h4>
+                    <p style="font-size: 12px; color: var(--text-muted); font-family: 'Share Tech Mono';">Executing dynamic client-side JavaScript DOM manipulation.</p>
+                </div>
+
+                <div class="tactic-card" onclick="inspectTechnique('T1499', 'Endpoint Denial of Service', 'Impact [TA0040]', 'Flooding security gateways with dynamic garbage URLs to degrade inspection engine capacity.')">
+                    <span class="tactic-tag">Impact [TA0040]</span>
+                    <h4 style="font-family: 'Orbitron'; font-size: 15px; color: #fff; margin-bottom: 8px;">T1499 — SIEM Gateway Flooding</h4>
+                    <p style="font-size: 12px; color: var(--text-muted); font-family: 'Share Tech Mono';">Exhausting thread pool memory buffers using high-frequency requests.</p>
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="modal" id="pModal" onclick="closePlaybook()">
+    <div class="modal" id="tModal" onclick="closeModal()">
         <div class="modal-body" onclick="event.stopPropagation()">
-            <h3 id="pbTitle" style="color: var(--neon-cyan); font-size: 20px;"></h3>
-            <div id="pbTactic" style="color: var(--neon-purple); font-size: 12px; font-weight: 700; margin-top: 4px;"></div>
-            <p id="pbDesc" style="color: var(--text-muted); font-size: 14px; margin-top: 16px; line-height: 1.6;"></p>
-            <div style="margin-top: 24px; background: rgba(4, 6, 13, 0.8); padding: 20px; border-radius: 14px; border: 1px solid var(--glass-border);">
-                <strong style="color: var(--neon-pink); font-size: 12px; text-transform: uppercase;">Automated PhishShield Mitigation:</strong>
-                <p id="pbMitigation" style="color: #fff; font-size: 13px; margin-top: 6px; font-family: 'JetBrains Mono', monospace;"></p>
+            <h3 id="mTitle" style="font-family: 'Orbitron'; color: #fff; font-size: 20px;"></h3>
+            <div id="mTactic" style="color: var(--neon-amber); font-family: 'Share Tech Mono'; font-size: 12px; margin-top: 4px;"></div>
+            
+            <div id="mAiOutput" class="ai-modal-content">
+                <i class="fa-solid fa-spinner fa-spin" style="color: var(--neon-amber);"></i> Compiling AI Threat Analysis...
             </div>
-            <button onclick="closePlaybook()" style="margin-top: 24px; background: var(--neon-cyan); color: #000; border: none; padding: 12px 24px; border-radius: 12px; font-weight: 800; cursor: pointer;">Close Playbook</button>
+
+            <button onclick="closeModal()" style="margin-top: 24px; background: var(--neon-red); color: #fff; border: none; padding: 12px 28px; border-radius: 8px; font-weight: 800; cursor: pointer; font-family: 'Orbitron'; font-size: 12px; letter-spacing: 1px;">CLOSE</button>
         </div>
     </div>
 
     <script>
-        function openPlaybook(title, tactic, desc, mit) {
-            document.getElementById('pbTitle').innerText = title;
-            document.getElementById('pbTactic').innerText = tactic;
-            document.getElementById('pbDesc').innerText = desc;
-            document.getElementById('pbMitigation').innerText = mit;
-            document.getElementById('pModal').style.display = 'flex';
+        async function inspectTechnique(id, name, tactic, desc) {
+            document.getElementById('mTitle').innerText = `${id} — ${name}`;
+            document.getElementById('mTactic').innerText = tactic;
+            const container = document.getElementById('mAiOutput');
+            container.innerHTML = '<i class="fa-solid fa-spinner fa-spin" style="color: var(--neon-amber);"></i> Querying AI Threat Engine for TTP breakdown...';
+            document.getElementById('tModal').style.display = 'flex';
+
+            try {
+                const res = await fetch('/api/v1/gemini-mitre-explain', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        technique_id: id,
+                        technique_name: name,
+                        tactic: tactic,
+                        description: desc
+                    })
+                });
+                const data = await res.json();
+                container.innerHTML = marked.parse(data.explanation);
+            } catch(e) {
+                container.innerText = "Error connecting to AI API endpoint.";
+            }
         }
-        function closePlaybook() {
-            document.getElementById('pModal').style.display = 'none';
-        }
+        function closeModal() { document.getElementById('tModal').style.display = 'none'; }
     </script>
 </body>
 </html>

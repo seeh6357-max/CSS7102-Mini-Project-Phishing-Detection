@@ -102,24 +102,25 @@ def serve_mitre_matrix(request: Request):
 @app.post("/api/v1/gemini-explain")
 def gemini_explain(payload: GeminiExplainRequest):
     """
-    Leverages Google Gemini 2.5 Flash API to generate a comprehensive, executive-level,
-    plain-English breakdown of raw phishing telemetry for non-technical users.
+    Leverages Google Gemini 2.5 Flash API to generate a comprehensive, 
+    multi-paragraph CISO cybersecurity incident report.
     """
     api_key = os.environ.get("GEMINI_API_KEY", "")
     
     prompt_text = f"""
-    You are an expert Chief Information Security Officer (CISO) and AI Cybersecurity Specialist.
-    Analyze this phishing detection result and provide a detailed, multi-paragraph, easy-to-understand breakdown for a non-technical user.
+    You are an expert Chief Information Security Officer (CISO) and Lead Threat Intelligence Analyst.
+    Provide an exhaustive, highly detailed, multi-paragraph cybersecurity incident report for this URL vector.
 
-    Target URL: {payload.url}
+    Target URL Vector: {payload.url}
     Security Verdict: {payload.verdict}
-    Calculated Risk Score: {payload.risk_score * 100:.1f}%
+    Calculated Risk Index: {payload.risk_score * 100:.1f}%
     Detection Source: {payload.source}
 
-    Please cover:
-    1. Executive Summary: What is this link and why was it flagged?
-    2. Threat Mechanics: How does this attack vector trick users (e.g., typosquatting, deceptive subdomains, fake login portals)?
-    3. Actionable Defense Advice: Immediate steps the user or company SOC team should take.
+    Structure your response into 4 distinct, in-depth sections:
+    1. EXECUTIVE THREAT OVERVIEW: Detailed summary of why this link was intercepted and its overall risk level.
+    2. TECHNICAL ATTACK MECHANICS: Deep breakdown of the specific trickery used (e.g., character entropy, typosquatting edit distance, deceptive subdomains, fake SSL/TLS brand imitations).
+    3. POTENTIAL IMPACT & MITRE MAPPING: What an attacker could gain (credentials, session tokens, malware delivery) mapped to MITRE ATT&CK vectors.
+    4. RECOMMENDED SOC & USER ACTION: Step-by-step immediate containment actions for both non-technical users and SOC tier-1 analysts.
     """
 
     if not api_key:
@@ -244,7 +245,8 @@ def batch_analyze_urls(payload: BatchURLRequest):
     }
 
 @app.get("/api/v1/logs")
-def get_audit_logs(limit: int = Query(10, ge=1, le=100)):
+def get_audit_logs(limit: int = Query(50, ge=1, le=200)):
+    """Retrieves live user scan telemetry logs (defaults to 50 recent records)."""
     raw_logs = logger.get_recent_logs(limit)
     formatted = []
     for r in raw_logs:
@@ -261,7 +263,7 @@ def get_audit_logs(limit: int = Query(10, ge=1, le=100)):
 
 @app.get("/api/v1/logs/{log_id}")
 def get_log_by_id(log_id: int):
-    raw_logs = logger.get_recent_logs(100)
+    raw_logs = logger.get_recent_logs(200)
     for r in raw_logs:
         if r[0] == log_id:
             url = r[1]
@@ -289,7 +291,7 @@ def get_log_by_id(log_id: int):
 @app.get("/api/v1/stats")
 @app.get("/api/v1/analytics")
 def get_telemetry_stats():
-    raw_logs = logger.get_recent_logs(100)
+    raw_logs = logger.get_recent_logs(200)
     total_scans = len(raw_logs)
     if total_scans == 0:
         return {
@@ -348,3 +350,51 @@ def purge_cache(payload: CachePurgeRequest):
         return {"status": "SUCCESS", "message": "Target key deleted from cache."}
     else:
         raise HTTPException(status_code=400, detail="Must specify target_url or purge_all=True")
+class MitreExplainRequest(BaseModel):
+    technique_id: str
+    technique_name: str
+    tactic: str
+    description: str
+
+@app.post("/api/v1/gemini-mitre-explain")
+def gemini_mitre_explain(payload: MitreExplainRequest):
+    """
+    Queries Google Gemini 2.5 Flash to generate a detailed CISO analysis for a MITRE ATT&CK technique.
+    """
+    api_key = os.environ.get("GEMINI_API_KEY", "")
+    
+    prompt_text = f"""
+    You are a Principal Security Operations Center (SOC) Lead and Threat Intelligence Expert.
+    Provide an in-depth, multi-paragraph analysis for this MITRE ATT&CK technique:
+
+    Technique ID & Name: {payload.technique_id} — {payload.technique_name}
+    Tactic Phase: {payload.tactic}
+    Summary: {payload.description}
+
+    Please cover in detail:
+    1. ADVERSARY INTENT & EXPLOITATION MECHANICS: How threat actors leverage this technique in real-world phishing and credential harvesting campaigns.
+    2. DETECTION INDICATORS (SIEM & EDR): Key log telemetry, behavioral anomalies, or URL/network indicators SOC analysts should monitor.
+    3. MITIGATION & DEFENSIVE PLAYBOOK: Concrete engineering controls (SPF/DKIM/DMARC, lexical entropy inspection, zero-trust gateways) to block this vector.
+    """
+
+    if not api_key:
+        return {
+            "explanation": f"### MITRE Threat Analysis for {payload.technique_id}\n\n"
+                           f"**Technique**: {payload.technique_name} ({payload.tactic})\n\n"
+                           f"**Overview**: {payload.description}\n\n"
+                           f"*(Export GEMINI_API_KEY environment variable in terminal to enable live AI threat playbooks)*"
+        }
+
+    try:
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={api_key}"
+        req_data = json.dumps({
+            "contents": [{"parts": [{"text": prompt_text}]}]
+        }).encode("utf-8")
+
+        req = urllib.request.Request(url, data=req_data, headers={"Content-Type": "application/json"})
+        with urllib.request.urlopen(req) as response:
+            res_json = json.loads(response.read().decode("utf-8"))
+            explanation = res_json['candidates'][0]['content']['parts'][0]['text']
+            return {"explanation": explanation}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Gemini API Error: {str(e)}")

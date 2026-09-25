@@ -3,114 +3,299 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PhishShield Enterprise Glass SOC</title>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <title>PHISHSHIELD // ENTERPRISE RED-TEAM SOC COMMAND</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800;900&family=Share+Tech+Mono&family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        :root { --bg-dark: #070913; --glass-card: rgba(15, 23, 42, 0.65); --glass-border: rgba(255, 255, 255, 0.12); --glass-hover: rgba(255, 255, 255, 0.08); --neon-cyan: #38bdf8; --neon-purple: #a855f7; --neon-pink: #ec4899; --neon-green: #10b981; --neon-red: #f43f5e; --neon-amber: #f59e0b; --text-main: #f8fafc; --text-muted: #94a3b8; --text-dim: #64748b; }
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: "Plus Jakarta Sans", sans-serif; }
-        body { background-color: var(--bg-dark); color: var(--text-main); min-height: 100vh; padding: 28px; }
-        .container { max-width: 1440px; margin: 0 auto; display: flex; flex-direction: column; gap: 28px; }
-        header { background: var(--glass-card); backdrop-filter: blur(20px); border: 1px solid var(--glass-border); border-radius: 20px; padding: 18px 32px; display: flex; justify-content: space-between; align-items: center; }
-        .brand { display: flex; align-items: center; gap: 16px; }
-        .brand h1 { font-size: 22px; font-weight: 800; background: linear-gradient(to right, #38bdf8, #c084fc, #f43f5e); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        .nav-links { display: flex; gap: 12px; }
-        .nav-links a { color: var(--text-muted); text-decoration: none; font-weight: 600; font-size: 14px; padding: 8px 16px; border-radius: 10px; transition: all 0.3s; }
-        .nav-links a.active { color: var(--neon-cyan); background: rgba(56, 189, 248, 0.15); border: 1px solid var(--neon-cyan); }
-        .scan-card { background: var(--glass-card); backdrop-filter: blur(24px); border: 1px solid var(--glass-border); border-radius: 24px; padding: 36px; }
-        .input-group { display: flex; gap: 14px; }
-        .input-wrapper { position: relative; flex: 1; display: flex; align-items: center; }
-        .input-wrapper i { position: absolute; left: 20px; color: var(--neon-cyan); font-size: 18px; }
-        .input-wrapper input { width: 100%; background: rgba(7, 9, 19, 0.7); border: 1px solid var(--glass-border); border-radius: 16px; padding: 18px 24px 18px 54px; color: #fff; font-size: 15px; font-family: 'JetBrains Mono', monospace; outline: none; }
-        .btn-scan { background: linear-gradient(135deg, #38bdf8 0%, #6366f1 50%, #a855f7 100%); color: #fff; border: none; padding: 0 36px; border-radius: 16px; font-weight: 700; font-size: 15px; cursor: pointer; }
-        .result-panel { display: none; margin-top: 28px; background: rgba(7, 9, 19, 0.8); border: 1px solid var(--glass-border); border-radius: 20px; padding: 28px; }
-        .verdict-tag { font-size: 16px; font-weight: 800; padding: 10px 24px; border-radius: 14px; text-transform: uppercase; }
-        .verdict-safe { background: rgba(16, 185, 129, 0.15); color: var(--neon-green); border: 1px solid var(--neon-green); }
-        .verdict-suspicious { background: rgba(245, 158, 11, 0.15); color: var(--neon-amber); border: 1px solid var(--neon-amber); }
-        .verdict-malicious { background: rgba(244, 63, 94, 0.15); color: var(--neon-red); border: 1px solid var(--neon-red); }
-        .metrics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 18px; margin-top: 20px; }
-        .metric-box { background: var(--glass-card); border: 1px solid var(--glass-border); border-radius: 14px; padding: 16px 20px; }
-        .dashboard-grid { display: grid; grid-template-columns: 2.2fr 1fr; gap: 28px; }
-        .table-card, .sidebar-card { background: var(--glass-card); border: 1px solid var(--glass-border); border-radius: 24px; padding: 32px; }
-        table { width: 100%; border-collapse: collapse; }
-        th { text-align: left; padding: 14px 18px; color: var(--text-dim); font-size: 11px; text-transform: uppercase; border-bottom: 1px solid var(--glass-border); }
-        td { padding: 16px 18px; font-size: 13px; border-bottom: 1px solid rgba(255,255,255,0.04); }
-        tr.clickable-row { cursor: pointer; transition: background 0.2s; }
-        tr.clickable-row:hover { background: rgba(56, 189, 248, 0.1); }
-        .analytics-box { background: rgba(7, 9, 19, 0.7); border: 1px solid var(--glass-border); border-radius: 18px; padding: 20px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; text-align: center; }
-        .stat-num { font-size: 22px; font-weight: 800; color: var(--neon-cyan); font-family: 'JetBrains Mono', monospace; }
+        :root {
+            --bg-deep: #020204;
+            --bg-card: #080a10;
+            --border-crimson: #ff1e38;
+            --border-dim: rgba(255, 30, 56, 0.25);
+            --neon-red: #ff1e38;
+            --neon-amber: #ffb703;
+            --neon-green: #06d6a0;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --text-dim: #475569;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
+        body { background-color: var(--bg-deep); color: var(--text-main); min-height: 100vh; padding: 24px; overflow-x: hidden; }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: var(--bg-deep); }
+        ::-webkit-scrollbar-thumb { background: var(--border-crimson); border-radius: 3px; }
+
+        .wrapper { max-width: 1600px; margin: 0 auto; display: flex; flex-direction: column; gap: 24px; }
+
+        /* Header Console Bar */
+        header {
+            background: var(--bg-card);
+            border: 2px solid var(--border-crimson);
+            border-radius: 16px;
+            padding: 16px 32px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 0 30px rgba(255, 30, 56, 0.15);
+        }
+
+        .brand-cluster { display: flex; align-items: center; gap: 16px; }
+        .brand-cluster i { font-size: 28px; color: var(--neon-red); text-shadow: 0 0 10px var(--neon-red); }
+        .brand-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 24px;
+            font-weight: 900;
+            letter-spacing: 2px;
+            color: #fff;
+            text-transform: uppercase;
+        }
+        .brand-title span { color: var(--neon-red); }
+
+        .nav-menu { display: flex; gap: 12px; }
+        .nav-menu a {
+            font-family: 'Share Tech Mono', monospace;
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 14px;
+            padding: 8px 18px;
+            border-radius: 8px;
+            border: 1px solid var(--text-dim);
+            transition: all 0.2s ease;
+            text-transform: uppercase;
+        }
+        .nav-menu a.active, .nav-menu a:hover {
+            color: #fff;
+            background: rgba(255, 30, 56, 0.2);
+            border-color: var(--neon-red);
+            box-shadow: 0 0 12px rgba(255, 30, 56, 0.4);
+        }
+
+        /* Hero Scanner Console */
+        .console-box {
+            background: var(--bg-card);
+            border: 1px solid var(--border-dim);
+            border-radius: 20px;
+            padding: 36px;
+            position: relative;
+            overflow: hidden;
+        }
+        .console-box::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 3px;
+            background: linear-gradient(90deg, var(--neon-red), var(--neon-amber), var(--neon-green));
+        }
+
+        .console-heading { font-family: 'Orbitron', sans-serif; font-size: 22px; font-weight: 800; color: #fff; margin-bottom: 6px; }
+        .console-desc { font-size: 13px; color: var(--text-muted); margin-bottom: 24px; font-family: 'Share Tech Mono', monospace; }
+
+        .input-cluster { display: flex; gap: 14px; }
+        .input-holder { position: relative; flex: 1; display: flex; align-items: center; }
+        .input-holder i { position: absolute; left: 20px; color: var(--neon-red); font-size: 16px; }
+        .input-holder input {
+            width: 100%;
+            background: #020204;
+            border: 1px solid var(--border-dim);
+            border-radius: 12px;
+            padding: 18px 20px 18px 52px;
+            color: #fff;
+            font-size: 14px;
+            font-family: 'Share Tech Mono', monospace;
+            outline: none;
+            transition: all 0.3s;
+        }
+        .input-holder input:focus { border-color: var(--neon-red); box-shadow: 0 0 15px rgba(255, 30, 56, 0.3); }
+
+        .btn-execute {
+            font-family: 'Orbitron', sans-serif;
+            background: var(--neon-red);
+            color: #fff;
+            border: none;
+            padding: 0 36px;
+            border-radius: 12px;
+            font-weight: 800;
+            font-size: 14px;
+            cursor: pointer;
+            letter-spacing: 1px;
+            transition: all 0.2s;
+            box-shadow: 0 0 20px rgba(255, 30, 56, 0.4);
+        }
+        .btn-execute:hover { background: #d90429; box-shadow: 0 0 30px rgba(255, 30, 56, 0.7); transform: translateY(-1px); }
+
+        /* Output Response Display */
+        .response-panel {
+            display: none;
+            margin-top: 28px;
+            background: #020204;
+            border: 1px solid var(--border-crimson);
+            border-radius: 14px;
+            padding: 28px;
+        }
+        .verdict-badge {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 14px;
+            font-weight: 900;
+            padding: 10px 24px;
+            border-radius: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+        }
+        .v-safe { background: rgba(6, 214, 160, 0.15); color: var(--neon-green); border: 1px solid var(--neon-green); }
+        .v-suspicious { background: rgba(255, 183, 3, 0.15); color: var(--neon-amber); border: 1px solid var(--neon-amber); }
+        .v-malicious { background: rgba(255, 30, 56, 0.15); color: var(--neon-red); border: 1px solid var(--neon-red); }
+
+        .metrics-split { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-top: 20px; }
+        .metric-cell { background: var(--bg-card); border: 1px solid var(--border-dim); border-radius: 10px; padding: 16px; }
+        .metric-cell label { font-size: 10px; color: var(--text-dim); text-transform: uppercase; font-family: 'Share Tech Mono', monospace; display: block; margin-bottom: 4px; }
+        .metric-cell span { font-size: 16px; font-weight: 800; font-family: 'Share Tech Mono', monospace; color: #fff; }
+
+        /* Split Dashboard Grid */
+        .grid-split { display: grid; grid-template-columns: 2.2fr 1fr; gap: 24px; }
+        .card-panel { background: var(--bg-card); border: 1px solid var(--border-dim); border-radius: 20px; padding: 32px; display: flex; flex-direction: column; }
+        
+        .panel-title { font-family: 'Orbitron', sans-serif; font-size: 16px; font-weight: 700; color: #fff; margin-bottom: 16px; display: flex; align-items: center; gap: 10px; }
+        .panel-title i { color: var(--neon-red); }
+
+        table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+        th { text-align: left; padding: 12px 16px; color: var(--text-dim); font-size: 11px; font-family: 'Share Tech Mono', monospace; text-transform: uppercase; border-bottom: 1px solid var(--border-dim); }
+        td { padding: 14px 16px; font-size: 13px; font-family: 'Share Tech Mono', monospace; border-bottom: 1px solid rgba(255,255,255,0.03); }
+        tr.log-row { cursor: pointer; transition: background 0.15s; }
+        tr.log-row:hover { background: rgba(255, 30, 56, 0.08); }
+
+        .load-more-wrapper { display: flex; justify-content: center; margin-top: 20px; }
+        .btn-load-more {
+            font-family: 'Share Tech Mono', monospace;
+            background: rgba(255, 30, 56, 0.1);
+            color: var(--neon-red);
+            border: 1px solid var(--border-crimson);
+            padding: 10px 24px;
+            border-radius: 8px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-transform: uppercase;
+        }
+        .btn-load-more:hover {
+            background: var(--neon-red);
+            color: #fff;
+            box-shadow: 0 0 15px rgba(255, 30, 56, 0.5);
+        }
+
+        .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 16px; text-align: center; }
+        .stat-box { background: #020204; border: 1px solid var(--border-dim); border-radius: 12px; padding: 16px 8px; }
+        .stat-val { font-family: 'Orbitron', sans-serif; font-size: 22px; font-weight: 900; color: var(--neon-red); }
+        .stat-lbl { font-size: 9px; color: var(--text-dim); font-family: 'Share Tech Mono', monospace; margin-top: 4px; text-transform: uppercase; }
+
+        /* Extended Architecture Footer Notes */
+        .architecture-notes {
+            background: var(--bg-card);
+            border: 1px solid var(--border-dim);
+            border-radius: 20px;
+            padding: 32px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+        }
+        .arch-col h5 { font-family: 'Orbitron', sans-serif; color: var(--neon-red); font-size: 13px; margin-bottom: 8px; }
+        .arch-col p { font-size: 12px; color: var(--text-muted); line-height: 1.5; font-family: 'Share Tech Mono', monospace; }
     </style>
 </head>
 <body>
-    <div class="container">
+    <div class="wrapper">
         <header>
-            <div class="brand">
-                <i class="fa-solid fa-shield-halved" style="font-size: 24px; color: var(--neon-cyan);"></i>
-                <h1>PhishShield Enterprise Glass SOC</h1>
+            <div class="brand-cluster">
+                <i class="fa-solid fa-shield-halved"></i>
+                <div class="brand-title">PHISH<span>SHIELD</span> // SOC</div>
             </div>
-            <div class="nav-links">
-                <a href="/" class="active"><i class="fa-solid fa-chart-line"></i> Dashboard</a>
-                <a href="/audit_log_details.html"><i class="fa-solid fa-magnifying-glass-chart"></i> Forensic Explorer</a>
-                <a href="/mitre_matrix.html"><i class="fa-solid fa-cubes"></i> MITRE ATT&CK</a>
-            </div>
+            <nav class="nav-menu">
+                <a href="/" class="active"><i class="fa-solid fa-terminal"></i> Console</a>
+                <a href="/audit_log_details.html"><i class="fa-solid fa-magnifying-glass-chart"></i> Forensics</a>
+                <a href="/mitre_matrix.html"><i class="fa-solid fa-cubes"></i> MITRE TTPs</a>
+            </nav>
         </header>
 
-        <div class="scan-card">
-            <h2>Real-Time Zero-Day Threat Inspection</h2>
-            <p style="color: var(--text-muted); margin-bottom: 24px;">Analyze target links via Whitelist Gatekeeper, SHA-256 Redis Memory Cache, and Tri-Voting Ensemble NLP Engine.</p>
-            <div class="input-group">
-                <div class="input-wrapper">
+        <div class="console-box">
+            <div class="console-heading">Zero-Day Threat Inspection Terminal</div>
+            <div class="console-desc">// EXECUTE MULTI-TIER INSPECTION: WHITELIST GATEKEEPER -> REDIS THREAT CACHE -> LEXICAL NLP ENSEMBLE</div>
+            
+            <div class="input-cluster">
+                <div class="input-holder">
                     <i class="fa-solid fa-globe"></i>
-                    <input type="text" id="urlInput" placeholder="Paste target URL (e.g. http://paypa1-security-center.account-verification-dispatch.info)">
+                    <input type="text" id="urlInput" placeholder="Enter target URL vector (e.g., http://paypa1-security-center.account-verification.info)">
                 </div>
-                <button class="btn-scan" onclick="analyzeURL()"><i class="fa-solid fa-bolt"></i> Inspect Threat</button>
+                <button class="btn-execute" onclick="analyzeURL()"><i class="fa-solid fa-crosshairs"></i> INSPECT</button>
             </div>
-            <div class="result-panel" id="resultPanel">
+
+            <div class="response-panel" id="resultPanel">
                 <div style="display: flex; justify-content: space-between; align-items: center;">
                     <div>
-                        <span style="font-size: 12px; color: var(--text-dim); font-weight: 700;">TARGET URL</span>
-                        <div id="resURL" style="font-weight: 700; margin-top: 4px; font-family: 'JetBrains Mono', monospace;"></div>
+                        <span style="font-size: 10px; color: var(--text-dim); font-family: 'Share Tech Mono', monospace; text-transform: uppercase;">Target URL Vector</span>
+                        <div id="resURL" style="font-weight: 700; margin-top: 4px; font-family: 'Share Tech Mono', monospace; font-size: 14px; color: #fff;"></div>
                     </div>
-                    <div id="resVerdict" class="verdict-tag"></div>
+                    <div id="resVerdict" class="verdict-badge"></div>
                 </div>
-                <div class="metrics-grid">
-                    <div class="metric-box"><label style="font-size: 11px; color: var(--text-dim);">SOURCE</label><br><span id="resSource" style="font-weight: 700;">-</span></div>
-                    <div class="metric-box"><label style="font-size: 11px; color: var(--text-dim);">RISK SCORE</label><br><span id="resScore" style="font-weight: 700;">-</span></div>
-                    <div class="metric-box"><label style="font-size: 11px; color: var(--text-dim);">LATENCY</label><br><span id="resLatency" style="font-weight: 700;">-</span></div>
+                <div class="metrics-split">
+                    <div class="metric-cell"><label>Detection Engine Source</label><span id="resSource" style="color: var(--neon-amber);">-</span></div>
+                    <div class="metric-cell"><label>Calculated Risk Index</label><span id="resScore" style="color: var(--neon-red);">-</span></div>
+                    <div class="metric-cell"><label>Execution Latency</label><span id="resLatency" style="color: var(--neon-green);">-</span></div>
                 </div>
             </div>
         </div>
 
-        <div class="dashboard-grid">
-            <div class="table-card">
-                <h3><i class="fa-solid fa-list-check" style="color: var(--neon-purple);"></i> Real-Time Audit Log Feed <span style="font-size: 12px; color: var(--neon-cyan); font-weight: 400; margin-left: 10px;">(Click any row to inspect deep forensics)</span></h3>
+        <div class="grid-split">
+            <div class="card-panel">
+                <div class="panel-title"><i class="fa-solid fa-list-check"></i> Real-Time Telemetry Audit Stream</div>
+                <p style="font-size: 12px; color: var(--text-muted); font-family: 'Share Tech Mono', monospace;">Click any event row to launch deep forensic inspection.</p>
                 <table>
                     <thead>
-                        <tr><th>ID</th><th>Target URL</th><th>Verdict</th><th>Source Tier</th><th>Action</th></tr>
+                        <tr><th>ID</th><th>Target URL</th><th>Verdict</th><th>Detection Source</th><th>Action</th></tr>
                     </thead>
                     <tbody id="logsBody">
-                        <tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 24px;">Loading live telemetry...</td></tr>
+                        <tr><td colspan="5" style="text-align: center; color: var(--text-dim); padding: 24px;">Establishing telemetry socket...</td></tr>
                     </tbody>
                 </table>
+                <div class="load-more-wrapper">
+                    <button class="btn-load-more" onclick="loadMoreLogs()"><i class="fa-solid fa-plus"></i> Fetch Next 20 Scans</button>
+                </div>
             </div>
 
-            <div class="sidebar-card">
-                <h3><i class="fa-solid fa-chart-pie" style="color: var(--neon-cyan);"></i> SOC Telemetry</h3>
-                <div class="analytics-box">
-                    <div><div class="stat-num" id="statTotal">0</div><div style="font-size: 10px; color: var(--text-dim);">TOTAL</div></div>
-                    <div><div class="stat-num" style="color: var(--neon-red);" id="statMalicious">0</div><div style="font-size: 10px; color: var(--text-dim);">THREATS</div></div>
-                    <div><div class="stat-num" style="color: var(--neon-green);" id="statLatency">0.0 ms</div><div style="font-size: 10px; color: var(--text-dim);">LATENCY</div></div>
+            <div class="card-panel">
+                <div class="panel-title"><i class="fa-solid fa-chart-pie"></i> SOC Telemetry Matrix</div>
+                <div class="stats-grid">
+                    <div class="stat-box"><div class="stat-val" id="statTotal">0</div><div class="stat-lbl">Scans</div></div>
+                    <div class="stat-box"><div class="stat-val" style="color: var(--neon-red);" id="statMalicious">0</div><div class="stat-lbl">Threats</div></div>
+                    <div class="stat-box"><div class="stat-val" style="color: var(--neon-green);" id="statLatency">0ms</div><div class="stat-lbl">Avg Lat</div></div>
                 </div>
+            </div>
+        </div>
+
+        <div class="architecture-notes">
+            <div class="arch-col">
+                <h5>[ TIER-1: REDIS THREAT CACHE ]</h5>
+                <p>In-memory SHA-256 hash lookup returning sub-millisecond cached verdicts for known malicious or benign payloads.</p>
+            </div>
+            <div class="arch-col">
+                <h5>[ TIER-2: SOFT-VOTING NLP ENSEMBLE ]</h5>
+                <p>Advanced lexical analysis utilizing character TF-IDF vectors, entropy calculation, and Levenshtein brand distance metrics.</p>
+            </div>
+            <div class="arch-col">
+                <h5>[ TIER-3: WHITELIST GATEKEEPER ]</h5>
+                <p>Enterprise domain boundary verification bypassing deep learning overhead for certified trusted institutional assets.</p>
             </div>
         </div>
     </div>
 
     <script>
+        let currentLimit = 20;
+
         async function analyzeURL() {
             const url = document.getElementById("urlInput").value.trim();
             if(!url) return;
-            const btn = document.querySelector(".btn-scan");
-            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Inspecting...';
+            const btn = document.querySelector(".btn-execute");
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> SCANNING...';
             try {
                 const response = await fetch("/api/v1/check-url", {
                     method: "POST",
@@ -124,32 +309,32 @@
                 document.getElementById("resLatency").innerText = data.latency;
                 const verdictElem = document.getElementById("resVerdict");
                 verdictElem.innerText = data.verdict;
-                verdictElem.className = "verdict-tag verdict-" + data.verdict.toLowerCase();
+                verdictElem.className = "verdict-badge v-" + data.verdict.toLowerCase();
                 document.getElementById("resultPanel").style.display = "block";
                 loadLogs();
             } catch (err) { alert("API Connection Error!"); }
-            finally { btn.innerHTML = '<i class="fa-solid fa-bolt"></i> Inspect Threat'; }
+            finally { btn.innerHTML = '<i class="fa-solid fa-crosshairs"></i> INSPECT'; }
         }
 
         async function loadLogs() {
             try {
-                const response = await fetch("/api/v1/logs");
+                const response = await fetch(`/api/v1/logs?limit=${currentLimit}`);
                 const logs = await response.json();
                 const tbody = document.getElementById("logsBody");
                 tbody.innerHTML = "";
                 logs.forEach(log => {
                     const row = document.createElement("tr");
-                    row.className = "clickable-row";
+                    row.className = "log-row";
                     row.onclick = () => window.location.href = `/audit_log_details.html?id=${log.id}`;
-                    let color = 'var(--neon-green)';
-                    if (log.verdict === 'SUSPICIOUS') color = 'var(--neon-amber)';
-                    if (log.verdict === 'MALICIOUS') color = 'var(--neon-red)';
+                    let cls = 'v-safe';
+                    if (log.verdict === 'SUSPICIOUS') cls = 'v-suspicious';
+                    if (log.verdict === 'MALICIOUS') cls = 'v-malicious';
                     row.innerHTML = `
-                        <td style="font-family: 'JetBrains Mono'; color: var(--text-dim);">#${log.id}</td>
-                        <td style="font-family: 'JetBrains Mono'; max-width: 280px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${log.url}</td>
-                        <td><span style="color: ${color}; font-weight: 800;">${log.verdict}</span></td>
-                        <td style="color: var(--text-muted); font-size: 12px;">${log.source}</td>
-                        <td><a href="/audit_log_details.html?id=${log.id}" style="color: var(--neon-cyan); text-decoration: none; font-weight: 700;">Inspect <i class="fa-solid fa-arrow-right"></i></a></td>
+                        <td style="color: var(--text-dim);">#${log.id}</td>
+                        <td style="max-width: 280px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${log.url}</td>
+                        <td><span class="${cls}" style="padding: 4px 10px; font-size: 11px; border-radius: 4px;">${log.verdict}</span></td>
+                        <td style="color: var(--text-muted); font-size: 11px;">${log.source}</td>
+                        <td><a href="/audit_log_details.html?id=${log.id}" style="color: var(--neon-red); text-decoration: none; font-weight: 700;">Inspect <i class="fa-solid fa-arrow-right"></i></a></td>
                     `;
                     tbody.appendChild(row);
                 });
@@ -157,9 +342,15 @@
                 const stats = await statsRes.json();
                 document.getElementById("statTotal").innerText = stats.total_scans || 0;
                 document.getElementById("statMalicious").innerText = stats.malicious_detected || stats.malicious_count || 0;
-                document.getElementById("statLatency").innerText = (stats.avg_latency_ms || stats.avg_latency || 0) + ' ms';
+                document.getElementById("statLatency").innerText = Math.round(stats.avg_latency_ms || stats.avg_latency || 0) + 'ms';
             } catch(e) {}
         }
+
+        function loadMoreLogs() {
+            currentLimit += 20;
+            loadLogs();
+        }
+
         loadLogs();
         setInterval(loadLogs, 4000);
     </script>
