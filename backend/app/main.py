@@ -26,7 +26,7 @@ class URLRequest(BaseModel):
 
 @app.get("/", response_class=HTMLResponse)
 def serve_ui(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request})
+    return templates.TemplateResponse(request=request, name="index.html")
 
 @app.get("/api/v1/logs")
 def get_audit_logs():
